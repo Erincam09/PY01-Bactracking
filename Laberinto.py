@@ -1,5 +1,54 @@
+import tkinter as tk
+from tkinter import ttk
 import random
 
+class InterfazLaberinto:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Laberinto")
+        self.root.geometry("800x600")
+
+        self.crear_controles() 
+
+    def crear_controles(self):
+        """ 
+         Aca vamos a poner el frame donde se situaran los botones de control
+         y las configuraciones
+        """
+        frame_controles = ttk.Frame(self.root, padding="10")   #Frame controles
+        frame_controles.pack(fill=tk.X)
+
+        #Generar Laberinto btn
+        btn_generar = ttk.Button(frame_controles, text="Generar Laberinto", command=self.generar_laberinto)  
+        btn_generar.pack(side=tk.LEFT, padx=5)
+
+        #Resolver Laberinto btn
+        btn_resolver = ttk.Button(frame_controles, text="Mostrar caminos", command=self.resolver_laberinto)
+        btn_resolver.pack(side=tk.LEFT, padx=5)
+
+        #Seleccion de tamaño de laberinto, configuraciones
+        label_tamaño = ttk.Label(frame_controles, text="Tamaño: ")
+        label_tamaño.pack(side=tk.LEFT, padx=5)
+
+        self.spin_tamano = ttk.Spinbox(frame_controles, from_=5, to=20, width=5) #un spinbox que vaya de 5x5 a 25x25 | Implementar
+        self.spin_tamano.pack(side=tk.LEFT, padx=5)
+        self.spin_tamano.set(10)
+
+        self.frame_laberinto =ttk.Frame(self.root)
+        self.frame_laberinto.pack(expand=True, fill=tk.BOTH)
+
+    def generar_laberinto(self):
+        print("Generando Bakcroom")
+
+    def resolver_laberinto(self):
+        print("Buscando ruta de escape")
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = InterfazLaberinto(root)
+    root.mainloop()
+"""
 def crear_Matriz(tamano):
     matriz = []
     for fila in range(tamano):
@@ -90,3 +139,4 @@ if caminos != []:
     print("Mejor Camino: ",CaminoOptimo)
 else:
     print("El laberinto no tiene solucion")
+"""
