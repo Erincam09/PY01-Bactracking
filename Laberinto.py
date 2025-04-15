@@ -15,7 +15,10 @@ def crear_Matriz(tamano):
 
 def mostrar_matriz(matriz, nodoInicio, nodoFinal):
     if nodoInicio != None:
-        matriz[nodoInicio[0]][nodoInicio[1]] = 2
+        if matriz[nodoInicio[0]][nodoInicio[1]] == 1:
+            matriz[nodoInicio[0]][nodoInicio[1]] = 2
+        else:
+            return("El campo seleccionado no es valido")
     if nodoFinal != None:
         matriz[nodoFinal[0]][nodoFinal[1]] = 3
     for fila in matriz:
@@ -69,13 +72,21 @@ def mejorCamino(lista):
     return mejor
 
 prueba = crear_Matriz(5)
+tam = len(prueba)
 final = nodo_final(prueba)
 mostrar_matriz(prueba, None, final)
 fil = int(input("Numero de fila:\n"))
+if fil>=tam or fil<0:
+    return("Error: fila invalida")
 col = int(input("Numero de columna:\n"))
+if col>=tam or col<0:
+    return("Error: columna invalida")
 mostrar_matriz(prueba, [fil,col], None)
 print("\n")
 caminos = backtracking(prueba, [fil,col])
-CaminoOptimo = mejorCamino(caminos)
-print(caminos)
-print(CaminoOptimo)
+if caminos != []:
+    CaminoOptimo = mejorCamino(caminos)
+    print("Todos los caminos posibles: ",caminos)
+    print("Mejor Camino: ",CaminoOptimo)
+else:
+    print("El laberinto no tiene solucion")
