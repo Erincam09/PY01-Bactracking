@@ -15,11 +15,17 @@ class InterfazLaberinto:
         self.caminos_especiales = {}
         self.crear_controles()
 
+
+    """
+    Construye el panel de control superior con todos los elementos interactivos:
+    - Botones para generación y resolución del laberinto
+    - Selector de tamaño mediante Spinbox (rango 5-20)
+    - Botones de navegación entre caminos
+    - Sección especial para mostrar caminos destacados
+    - Área de mensajes con sistema de colores por tipo (error/éxito/info)
+    - Configura estilos y disposición de todos los widgets
+    """
     def crear_controles(self):
-        """ 
-         Aca vamos a poner el frame donde se situaran los botones de control
-         y las configuraciones
-        """
         frame_controles = ttk.Frame(self.root, padding="10")   #Frame controles
         frame_controles.pack(fill=tk.X)
 
@@ -78,6 +84,16 @@ class InterfazLaberinto:
         self.frame_laberinto.pack(expand=True,fill=tk.BOTH, padx=10, pady=10)
 
 
+
+    """
+    Genera un laberinto válido mediante el siguiente proceso:
+    1. Obtiene el tamaño seleccionado por el usuario
+    2. Crea una matriz aleatoria usando crear_Matriz()
+    3. Fuerza las esquinas (0,0) y (n-1,n-1) como celdas transitables
+    4. Limpia el frame de dibujo anterior
+    5. Reinicia el estado de caminos encontrados
+    6. Maneja errores de entrada con mensajes visuales
+    """
     def generar_laberinto(self):
         try:
             tamano = int(self.spin_tamano.get())
@@ -109,7 +125,16 @@ class InterfazLaberinto:
             self.dibujar_matriz_especial([],None)
 
     
-
+    """
+    Coordina el proceso de resolución completo:
+    1. Valida que exista un laberinto generado
+    2. Crea copia de seguridad de la matriz original
+    3. Configura puntos inicial (2) y final (3)
+    4. Ejecuta el algoritmo de backtracking para encontrar todos los caminos
+    5. Identifica caminos especiales (corto/largo/óptimo)
+    6. Habilita la navegación entre soluciones
+    7. Proporciona feedback visual del resultado
+    """
     def resolver_laberinto(self):
         "Encontrar todos los posibles caminos usando el algoritmo de Backtracking"
         if not self.matriz:
@@ -165,6 +190,17 @@ class InterfazLaberinto:
         self.caminos_especiales['optimo'] = self.encontrar_camino_optimo()
 
 
+    """
+    Selección inteligente del mejor camino:
+    - Criterios combinados:
+      1. Longitud (prioriza 25% más cortos)
+      2. Eficiencia de movimiento (menos cambios de dirección)
+    - Proceso:
+      1. Ordena caminos por longitud
+      2. Filtra los más cortos
+      3. Evalúa cambios de dirección con calcular_cambios_direccion()
+      4. Retorna el camino con menor número de giros
+    """
     def encontrar_camino_optimo(self):
         #Primero ordenamos por longitud
         caminos_ordenados = sorted(self.caminos, key=len)
@@ -213,6 +249,16 @@ class InterfazLaberinto:
         self.mostrar_mensaje("Mostrando camino "+ tipo, 'info')
 
 
+
+    """
+    Sistema de renderizado gráfico del laberinto:
+    - Asigna colores específicos a:
+      * 0 (muro): gris oscuro
+      * 1 (camino): blanco
+      * 2 (inicio): azul
+      * 3 (fin): rojo
+    - Resalta celdas del camino con el color especificado
+    """
     def dibujar_matriz_especial(self, camino, color_camino):
         """Dibuja la matriz resaltanmdp un camino con color especial"""
         for i in range(len(self.matriz)):
@@ -269,7 +315,15 @@ class InterfazLaberinto:
 
 #CAMBIO ------------------------------------------------------
 
-
+"""
+    Validador de laberintos usando DFS:
+    - Implementación:
+      1. Matriz de visitados para evitar repeticiones
+      2. Recorrido en profundidad desde (0,0)
+      3. Prueba las 4 direcciones posibles
+      4. Retorna True solo si alcanza la celda final
+    - Eficiencia: O(n²) donde n es el tamaño de la matriz
+"""
 def camino_valido(matriz):
     if not matriz or matriz[0][0] == 0 or matriz[-1][-1] == 0:
         return False
@@ -296,11 +350,17 @@ def camino_valido(matriz):
         return False
     return dfs(0,0) 
 
-
+"""
+Generador robusto de matrices de laberinto:
+- Características:
+    * Intenta hasta 10 configuraciones aleatorias
+    * Probabilidad 70% para celdas transitables (1)
+    * Garantiza esquinas accesibles
+    * Verifica validez con camino_valido()
+- Fallback: Si no encuentra solución en los intentos, 
+    genera matriz completamente transitable
+"""
 def crear_Matriz(tamano):
-    """
-    crear matriz dinamica, asegurando al menos un camino a punto b dejando las esquinas libres
-    """
     intentos_maximos = 10
     for _ in range(intentos_maximos):
         matriz_temp = []
@@ -339,12 +399,25 @@ def nodo_final(matriz):
     if posibles != None:
         return random.choice(posibles)
 
+
 def backtracking(matriz, nodoInicio):
     listaCaminos = []
     visitados = []
     busqueda(matriz, None, nodoInicio, [], listaCaminos, visitados)
     return listaCaminos
 
+"""
+Función recursiva auxiliar para backtracking:
+- Lógica de exploración:
+    1. Marca celda actual como visitada
+    2. Si llega al final (3), guarda el camino
+    3. Explora en 4 direcciones (evitando retroceder)
+    4. Implementa poda para evitar ciclos
+- Parámetros clave:
+    * nodoAnterior: Evita movimientos redundantes
+    * lista: Acumula el camino parcial actual
+    * listaCaminos: Almacena soluciones completas
+"""
 def busqueda(matriz, nodoAnterior, nodoActual, lista, listaCaminos, visitados):
     if(nodoActual[0] >= 0 and nodoActual[1] >= 0 and nodoActual[0] < len(matriz) and nodoActual[1] < len(matriz)):
         for elem in visitados:
