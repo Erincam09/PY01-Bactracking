@@ -2,16 +2,43 @@ import tkinter as tk
 from tkinter import ttk
 import random
 from collections import deque
+import json
+from PIL import Image, ImageTk
+from tkinter import messagebox
 
 class InterfazLaberinto:
-    def __init__(self, root):
+    def __init__(self):
+        menu_window = tk.Tk()
+        menu_window.geometry("1000x600")
+        menu_window.resizable(0, 0)
+        menu_window.title("Menu Principal")
+        menu_window.config(bg="black")
+
+        def Cerrar_ventana1():
+            menu_window.destroy()
+            
+        def Cerrar_ventana3():
+            menu_window.destroy()
+            self.juego()
+
+        Jugar = tk.Button(text = "Jugar", font=("Courier new", 15, "bold"), fg="white", bg="mediumPurple1", width=20, command=lambda:Cerrar_ventana1())
+        Jugar.place(x = 180, y = 220)
+        modoSoluciones = tk.Button(text = "Soluciones", font=("Courier new", 15, "bold"), fg="white", bg="mediumPurple1", width=20, command=lambda:Cerrar_ventana3())
+        modoSoluciones.place(x = 180, y = 350)
+
+        menu_window.mainloop()
+
+    def juego(self):
+        root = tk.Tk()
         self.root = root
         self.root.title("Laberinto")
-        self.root.geometry("800x600")
+        self.root.attributes('-fullscreen', True)
+        self.root.resizable(0, 0)
+        self.root.config(bg="black")
+
         self.matriz = []
         self.caminos = []
         self.camino_actual = 0
-        self.crear_laberinto_frame() 
         self.caminos_especiales = {}
         self.crear_controles()
 
@@ -41,11 +68,11 @@ class InterfazLaberinto:
         label_tamano = ttk.Label(frame_controles, text="Tamaño: ")
         label_tamano.pack(side=tk.LEFT, padx=5)
 
-        self.spin_tamano = ttk.Spinbox(frame_controles, from_=5, to=20, width=5) #un spinbox que vaya de 5x5 a 25x25 | Implementar
-        self.spin_tamano.pack(side=tk.LEFT, padx=5)
-        self.spin_tamano.set(10)
+        self.combo_dimensiones = ttk.Combobox(frame_controles,state = "readonly", values = [5,10,15,20,25],font=("Courier New", 15), style="TCombobox")
+        self.combo_dimensiones.pack(side=tk.LEFT, padx=5)
 
         self.frame_laberinto =ttk.Frame(self.root)
+        self.frame_laberinto.place()
         self.frame_laberinto.pack(expand=True, fill=tk.BOTH)
 
         #Boton camino siguiente
@@ -77,14 +104,6 @@ class InterfazLaberinto:
         btn_largo = ttk.Button(frame_caminos, text="Camino largo", command=lambda: self.mostrar_camino_especial('largo'))
         btn_largo.pack(side=tk.LEFT, padx=2)
 
-
-    def crear_laberinto_frame(self):
-        "Frame para dibujar el labertinto"
-        self.frame_laberinto = ttk.Frame(self.root)
-        self.frame_laberinto.pack(expand=True,fill=tk.BOTH, padx=10, pady=10)
-
-
-
     """
     Genera un laberinto válido mediante el siguiente proceso:
     1. Obtiene el tamaño seleccionado por el usuario
@@ -96,12 +115,8 @@ class InterfazLaberinto:
     """
     def generar_laberinto(self):
         try:
-            tamano = int(self.spin_tamano.get())
+            tamano = int(self.combo_dimensiones.get())
             self.matriz = crear_Matriz(tamano)
-
-            #Asegurar que las esquinas sean caminos
-            self.matriz[0][0] = 1
-            self.matriz[tamano-1][tamano-1] = 1
 
             #Limbiar y dibujar consola
             for widget in self.frame_laberinto.winfo_children():
@@ -146,27 +161,10 @@ class InterfazLaberinto:
 
         #Seleccionar Posicion
         tamano = len(self.matriz)
-        inicio = [0,0]
-        fin = [tamano-1, tamano-1]
 
-        #validar error en posicion con respecto a tamaño de matriz
-        if self.matriz[inicio[0]][inicio[1]] != 1:
-            self.mostrar_mensaje("Posición inicial no es válida", 'error')
-            # Forzar posición inicial válida
-            self.matriz[inicio[0]][inicio[1]] = 1
-            self.matriz_original[inicio[0]][inicio[1]] = 1
-        
-        if self.matriz[fin[0]][fin[1]] != 1:
-            self.mostrar_mensaje("Posición final no es válida", 'error')
-            # Forzar posición final válida
-            self.matriz[fin[0]][fin[1]] = 1
-            self.matriz_original[fin[0]][fin[1]] = 1
-
-        self.matriz[inicio[0]][inicio[1]] = 2 #Inicio
-        self.matriz[fin[0]][fin[1]] = 3 #final
         self.dibujar_matriz()
 
-        self.caminos = backtracking(self.matriz, inicio)
+        self.caminos = backtracking(self.matriz)
 
         if self.caminos:
             self.encontrar_caminos_especiales()
@@ -237,8 +235,6 @@ class InterfazLaberinto:
         self.matriz = [fila[:] for fila in self.matriz_original]
 
         tamano = len(self.matriz)
-        self.matriz[0][0] = 2
-        self.matriz[tamano-1][tamano-1] = 3
 
         color = {
             'corto': 'green',
@@ -268,22 +264,42 @@ class InterfazLaberinto:
                 if valor == 0:
                     bg_color = "gray20"
                     text = ""
+                    estado = tk.DISABLED
                 elif valor == 1:
                     bg_color = "white"
                     text = ""
+                    estado = tk.NORMAL
                 elif valor == 2:
                     bg_color = "blue"
                     text = "I"
+                    estado = tk.NORMAL
                 elif valor == 3:
                     bg_color = "red"
                     text = "F"
-                if [i,j] in camino:
+                    estado = tk.NORMAL
+
+                if [i, j] in camino:
                     bg_color = color_camino
                     text = "•"
-                celda = tk.Label(self.frame_laberinto, text=text, bg=bg_color, width=3,
-                                 height=1, relief="ridge", font=('Arial',10))
-                celda.grid(row=i, column=j, padx=1, pady=1)
-    
+
+                boton = tk.Button(
+                    self.frame_laberinto, text=text, bg=bg_color, width=3, height=1,
+                    relief="raised", font=('Arial', 10), state=estado,
+                    command=lambda x=i, y=j: self.NodoInicio(x, y)
+                )
+                boton.grid(row=i, column=j, padx=1, pady=1)
+
+    def NodoInicio(self, fila, columna):
+        if self.matriz[fila][columna] == 1:
+        # En el caso de que hubiera una salida ya establecida, esta se eliminará
+            for i in range(len(self.matriz)):
+                for j in range(len(self.matriz[i])):
+                    if self.matriz[i][j] == 3:
+                        self.matriz[i][j] = 1
+            # Se agregá la nueva salida en el laberinto
+            self.matriz[fila][columna] = 3
+            self.dibujar_matriz_especial([],None)
+
 
     def mostrar_siguiente_camino(self):
         if not self.caminos:
@@ -293,8 +309,6 @@ class InterfazLaberinto:
 
         #Volver a marcar inicio y fin
         tamano = len(self.matriz)
-        self.matriz[0][0] = 2
-        self.matriz[tamano-1][tamano-1] = 3
 
         #Siguiente Camino
         self.camino_actual = (self.camino_actual + 1) % len(self.caminos)
@@ -351,58 +365,143 @@ def camino_valido(matriz):
     return dfs(0,0) 
 
 """
-Generador robusto de matrices de laberinto:
-- Características:
-    * Intenta hasta 10 configuraciones aleatorias
-    * Probabilidad 70% para celdas transitables (1)
-    * Garantiza esquinas accesibles
-    * Verifica validez con camino_valido()
-- Fallback: Si no encuentra solución en los intentos, 
-    genera matriz completamente transitable
+Esta funcion rompe x cantidad de paredes 
+- Logica de la funcion:
+    1. Se cumple el ciclo dependiendo de la cantidad de veces establecida
+    2. No se permiten mas de 100 intentos
+    3. Se saca de manera aletoria un indice de la matriz
+    4. Se valida que solo se pueda eliminar una pared que tenga 2 0 3 caminos alrededor
+    5. Se eliminan las paredes que fueron debidamente validadas
+- Parámetros Clave:
+    1. tam: tamaño o largo de la matriz
+    2. cantidad: Cuantas paredes se quieren romper 
+    3. intentos: Cantidad de intentos que se realizan limite 100
+    4. vecinosAbiertos: Posibles caminos alrededor de las paredes 
 """
+def romperParedes(laberinto, cantidad):
+    tam = len(laberinto)
+
+    for _ in range(cantidad):
+        intentos = 0
+        while intentos < 100:
+            fila = random.randint(1, tam - 2)
+            columna = random.randint(1, tam - 2)
+
+            # Esto hace posible que solo se puede eliminar una pared que este entre dos o tres caminos 
+            if laberinto[fila][columna] == 0:
+                vecinosAbiertos = 0
+                if laberinto[fila-1][columna] == 1: 
+                    vecinosAbiertos += 1
+                if laberinto[fila+1][columna] == 1: 
+                    vecinosAbiertos += 1
+                if laberinto[fila][columna-1] == 1: 
+                    vecinosAbiertos += 1
+                if laberinto[fila][columna+1] == 1: 
+                    vecinosAbiertos += 1
+                
+                if laberinto[fila-1][columna-1] == 1: 
+                    vecinosAbiertos += 1
+                if laberinto[fila-1][columna+1] == 1: 
+                    vecinosAbiertos += 1
+                if laberinto[fila+1][columna-1] == 1: 
+                    vecinosAbiertos += 1
+                if laberinto[fila+1][columna+1] == 1: 
+                    vecinosAbiertos += 1
+
+                if vecinosAbiertos == 2 or vecinosAbiertos ==3 :
+                    laberinto[fila][columna] = 1
+                    break
+
+            intentos += 1
+
+"""
+Esta funcion genera un laberinto utilizando backtracking
+- Logica de la funcion:
+    1. Comienza desde la esquina superior izquierda 
+    2. Crea caminos aleatorios al moverse dos celdas en direcciones posibles (arriba, abajo, izquierda, derecha), 
+    3. Elimina las paredes intermedias entre celdas para crear nuevos caminos 
+    4. Si no hay más caminos disponibles desde una posición, retrocede a la anterior (backtracking). 
+    5. Se añade un borde de paredes alrededor del laberinto 
+    6. Por ultimo, se marca una posición aleatoria como nodo final.
+"""
+
 def crear_Matriz(tamano):
-    intentos_maximos = 10
-    for _ in range(intentos_maximos):
-        matriz_temp = []
-        for fila in range (tamano):
-            fila_temp = []
-            for columna in range(tamano):
-                if (fila == 0 and columna == 0) or (fila == tamano-1 and columna == tamano-1):
-                    fila_temp.append(1)
-                else:
-                    fila_temp.append(1 if random.random() < 0.7 else 0)
-            matriz_temp.append(fila_temp)
-        if camino_valido(matriz_temp):
-            return matriz_temp
-        
-    #Generar laberrinto abierto despues de muchos intentos para que no explote
-    return [[1 for _ in range(tamano)] for _ in range(tamano)]
+    if tamano % 2 == 0:
+        tamano += 1
 
-def mostrar_matriz(matriz, nodoInicio, nodoFinal):
-    if nodoInicio != None:
-        if matriz[nodoInicio[0]][nodoInicio[1]] == 1:
-            matriz[nodoInicio[0]][nodoInicio[1]] = 2
+    # Crear una matriz llena de ceros (paredes)
+    laberinto = [[0 for _ in range(tamano)] for _ in range(tamano)]
+
+    # Comenzamos en la esquina superior izquierda
+    inicio_fila = 0
+    inicio_columna = 0
+    laberinto[inicio_fila][inicio_columna] = 1 
+
+    # Lista de posiciones
+    pila = [(inicio_fila, inicio_columna)]
+
+    direcciones = [(-2, 0), (2, 0), (0, -2), (0, 2)]
+
+    # Para verificar que las posiciones esten dentro del rango de la matriz
+    def en_rango(fila, columna):
+        return 0 <= fila < tamano and 0 <= columna < tamano
+
+    # Aqui se generan los caminos de forma dinamica con backtracking
+    while pila:
+        fila_actual, columna_actual = pila[-1]
+
+        vecinos = [] #Celdas a la que se puede mover desde la actual
+
+        for d1, d2 in direcciones:
+            nueva_fila = fila_actual + d1
+            nueva_columna = columna_actual + d2
+
+            if en_rango(nueva_fila, nueva_columna):
+                if laberinto[nueva_fila][nueva_columna] == 0:
+                    vecinos.append((nueva_fila, nueva_columna))
+
+        if vecinos:
+            siguiente_fila, siguiente_columna = random.choice(vecinos)
+
+            # Quitar la pared entre la celda actual y la siguiente
+            medio_fila = (fila_actual + siguiente_fila) // 2
+            medio_columna = (columna_actual + siguiente_columna) // 2
+            laberinto[medio_fila][medio_columna] = 1
+            laberinto[siguiente_fila][siguiente_columna] = 1
+
+            pila.append((siguiente_fila, siguiente_columna))
         else:
-            return("El campo seleccionado no es valido")
-    if nodoFinal != None:
-        matriz[nodoFinal[0]][nodoFinal[1]] = 3
-    for fila in matriz:
-        print(fila)
+            pila.pop()
 
-def nodo_final(matriz):
-    tam = len(matriz)
-    posibles = []
-    for i in range(tam):
-        for j in range(tam):
-            if matriz[i][j] == 1:
-                posibles.append([i, j])
-    if posibles != None:
-        return random.choice(posibles)
+    laberinto[tamano - 1][tamano - 1] = 1
+    laberinto[tamano - 2][tamano - 1] = 1
+    laberinto[tamano - 1][tamano - 2] = 1
 
+    # Primera fila de pared 
+    ancho = len(laberinto[0])
+    borde = [0] * (ancho + 2)
 
-def backtracking(matriz, nodoInicio):
+    laberinto_con_borde = [borde]  # primera fila de pared
+
+    for fila in laberinto:
+        laberinto_con_borde.append([0] + fila + [0])  # paredes a los lados
+
+    laberinto_con_borde.append(borde)  # última fila de pared
+
+    nodoFinal = nodo_Aleatorio(laberinto_con_borde)
+    laberinto_con_borde[nodoFinal[0]][nodoFinal[1]] = 2
+    
+    romperParedes(laberinto_con_borde, tamano//2)
+    return laberinto_con_borde
+
+def backtracking(matriz):
     listaCaminos = []
     visitados = []
+    nodoInicio = []
+    for i, row in enumerate(matriz):
+        for j, value in enumerate(row):
+            if value == 2:
+                nodoInicio = [i, j]
     busqueda(matriz, None, nodoInicio, [], listaCaminos, visitados)
     return listaCaminos
 
@@ -442,36 +541,76 @@ def busqueda(matriz, nodoAnterior, nodoActual, lista, listaCaminos, visitados):
 
             visitados.pop()
 
-def mejorCamino(lista):
-    mejor = lista[0]
-    for camino in lista:
-        if len(camino)<len(mejor):
-            mejor = camino
-    return mejor
+"""
+Funcion para elegir de manera aleatoria un punto en el mapa:
+- Logica de la funcion:
+    1. Recorre la matriz por medio de indices
+    2. Se prueba que el elemento en la posicion sea igual a 1 (camino)
+    3. Todos los indices de los caminos son agregados a la lista de posibles 
+    4. Se utiliza de random para elegir uno de los puntos de la lista
+- Parámetros Claves:
+    * tam = tamaño o largo de la matriz
+    * posibles = Guarda todos los puntos libres (caminos)
+"""
+
+def nodo_Aleatorio(matriz):
+    tam = len(matriz)
+    posibles = []
+    for i in range(tam):
+        for j in range(tam):
+            if matriz[i][j] == 1:
+                posibles.append([i, j])
+    if posibles != None:
+        return random.choice(posibles)
 
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = InterfazLaberinto(root)
-    root.mainloop()
+
+""""
+def guardar():
+    partida_window = Tk()
+    partida_window.geometry("400x200")
+    partida_window.title("Partida")
+    partida_window.config(bg="mediumpurple1")
+    label_nombre = tk.Label(partida_window,text="Ingrese el nombre de la partida:", bg="mediumpurple1", font=("Courier New", 12), fg="black")
+    label_nombre.place(x=35, y=30)
+    nombrePart = tk.Entry(partida_window, relief="sunken", font=("Courier New", 12), width=32)
+    nombrePart.place(x=35, y=80)
+    boton = tk.Button(partida_window,text="Guardar Partida", font=("Courier New", 12), bg="white", fg="black", command=lambda:agregarPartida(nombrePart.getText()))
+    boton.place(x=111, y=130)
+
+    nombreArchivo = "Partidas.json"
+    try:
+        archivo = open("Partidas.json","r")
+        archivo.close()
+    except:
+        archivo = open(nombreArchivo,"w")
+        archivo.write("{}")
+        archivo.close()
+
+    partida_window.mainloop()
+
+def agregarPartida(nombre):
+    Partidas = {}
+    
+    try:
+        archivo= open("Partidas.json","r")
+        Partidas = json.load(archivo)
+        archivo.close
+    except:
+        archivo = open("Partidas.json","w")
+        archivo.close
+
+    Partida = {}
+    Partida["Nombre de la Partida"] = nombre
+    Partida["Matriz"] = matriz2
+    Partidas[nombre] = Partida
+    archivo = open("Partidas.json", "r+")
+    json.dump(Partidas, archivo, indent=7)
+    archivo.close()
+
+    messagebox.showinfo("Guardado", "Tu partida ha quedado guardada")
+    partida_window.destroy()
+    juego_window.destroy()
+    
 """
-prueba = crear_Matriz(5)
-tam = len(prueba)
-final = nodo_final(prueba)
-mostrar_matriz(prueba, None, final)
-fil = int(input("Numero de fila:\n"))
-if fil>=tam or fil<0:
-    return("Error: fila invalida")
-col = int(input("Numero de columna:\n"))
-if col>=tam or col<0:
-    return("Error: columna invalida")
-mostrar_matriz(prueba, [fil,col], None)
-print("\n")
-caminos = backtracking(prueba, [fil,col])
-if caminos != []:
-    CaminoOptimo = mejorCamino(caminos)
-    print("Todos los caminos posibles: ",caminos)
-    print("Mejor Camino: ",CaminoOptimo)
-else:
-    print("El laberinto no tiene solucion")
-"""
+InterfazLaberinto()
