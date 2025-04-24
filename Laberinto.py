@@ -38,45 +38,61 @@ class InterfazLaberinto:
     Carga los botones del menu inicial despues de cargar la imagen
     """
     def botones_menu(self):
+        # espacio para el titulo 
+        title_frame = tk.Frame(self.menu_window, bg='')
+        title_frame.pack(pady=(100, 20))  
+
         #Frame Contenedor de botones para el menu principal
-        button_frame = tk.Frame(self.menu_window, bg='', bd=0)  # Frame transparente
-        button_frame.place(relx=0.5, rely=0.5, anchor="center")
+        button_frame = tk.Frame(self.menu_window, bg='#1e1e1e')  # Frame transparente
+        button_frame.pack(pady=(22, 30))
 
         #Estilo para los botones
         button_style = {
-            "font": ("Arial", 16, "bold"),
-            "width": 15,
-            "height": 2,
-            "bd": 0,
+            "font": ("Comic Sans MS", 15, "bold"),
+            "bd": 4,
             "relief": "raised",
-            "fg": "white",
-            "bg": "#3498db",
-            "activebackground": "#2980b9"
-        }
+            "fg": "#fce5cd",
+            "bg": "#5c3b22",
+            "activebackground": "#70492a",
+            "activeforeground": "#fff5e1",
+            "padx": 30,
+            "pady": 2
+        }           
 
         #Boton 1 (Modo Clasico)
         tk.Button(
             button_frame,
-            text="Juego 1\n(Modo Clásico)",
+            text="Modo Clásico",
             command=self.iniciar_juego_clasico,
             **button_style
-        ).pack(pady=15, fill=tk.X)
+        ).pack(side=tk.LEFT, padx=15)
 
         #Boton 2 (Modo jugador)
         tk.Button(
             button_frame,
-            text="Juego 2\n(Próximamente)",
+            text="Libre | Próximamente",
             state=tk.DISABLED,
             **{**button_style, "bg": "#7f8c8d", "activebackground": "#6c7a89"}
-        ).pack(pady=15, fill=tk.X)
+        ).pack(side=tk.LEFT, padx=15)
 
         # Botón Cargar Juego
         tk.Button(
             button_frame,
             text="Cargar Juego",
             command=self.cargar_juego,
-            **{**button_style, "bg": "#2ecc71", "activebackground": "#27ae60"}
-        ).pack(pady=15, fill=tk.X)
+            **button_style
+        ).pack(side=tk.LEFT, padx=15)
+
+        # Boton Salir
+        tk.Button(
+            button_frame,
+            text="Salir",
+            command=self.menu_window.destroy,  # Cierra la aplicación
+            **{**button_style, 
+            "bg": "#7b241c",  # Rojo oscuro/marrón
+            "activebackground": "#922b21",
+            "fg": "#fadbd8"}  # Texto más claro
+    ).pack(side=tk.LEFT, padx=15)
 
 
     def iniciar_juego_clasico(self):
@@ -102,24 +118,6 @@ class InterfazLaberinto:
     def cargar_juego(self):
         messagebox.showinfo("Cargar Juego", "Funcionalidad en desarrollo")
         self.iniciar_juego_clasico()
-
-
-        def Cerrar_ventana1():
-            self.menu_window.destroy()
-            
-        def Cerrar_ventana3():
-            self.menu_window.destroy()
-            self.iniciar_juego_clasico()
-
-            Jugar = tk.Button(text = "Jugar", font=("Courier new", 15, "bold"), fg="white", bg="mediumPurple1", width=20, command=lambda:Cerrar_ventana1())
-            Jugar.place(x = 180, y = 220)
-            modoSoluciones = tk.Button(text = "Soluciones", font=("Courier new", 15, "bold"), fg="white", bg="mediumPurple1", width=20, command=lambda:Cerrar_ventana3())
-            modoSoluciones.place(x = 180, y = 350)
-
-            self.menu_window.mainloop()
-
-    
-
 
     """
     Construye el panel de control superior con todos los elementos interactivos:
