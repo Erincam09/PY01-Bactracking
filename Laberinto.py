@@ -57,8 +57,7 @@ class InterfazLaberinto:
             "activeforeground": "#fff5e1",
             "padx": 30,
             "pady": 2
-        }           
-
+        } 
         #Boton 1 (Modo Clasico)
         tk.Button(
             button_frame,
@@ -71,7 +70,7 @@ class InterfazLaberinto:
         tk.Button(
             button_frame,
             text="Libre | Próximamente",
-            state=tk.DISABLED,
+            command=self.iniciar_juego_libre,
             **{**button_style, "bg": "#7f8c8d", "activebackground": "#6c7a89"}
         ).pack(side=tk.LEFT, padx=15)
 
@@ -93,92 +92,68 @@ class InterfazLaberinto:
             "activebackground": "#922b21",
             "fg": "#fadbd8"}  # Texto más claro
     ).pack(side=tk.LEFT, padx=15)
-
-
+        
     def iniciar_juego_clasico(self):
-        """Cierra el menú y abre la interfaz del juego con controles"""
-        self.menu_window.destroy()  # Cierra la ventana del menú
-        
-        # Crea la ventana principal del juego
-        self.root = tk.Tk()
-        self.root.title("Laberinto - Modo Clásico")
-        self.root.attributes('-fullscreen', True)
-        self.root.config(bg="black")
-        
-        # Inicializa variables del juego
-        self.matriz = []
-        self.caminos = []
-        self.camino_actual = 0
-        self.caminos_especiales = {}
-        
-        # Crea los controles directamente
-        self.crear_controles()
-        self.root.mainloop()
-    
+        self.menu_window.destroy()
+        root = tk.Tk()
+        root.title("Laberinto - Modo Clásico")
+        root.attributes('-fullscreen', True)
+        JuegoClasico(root)
+        root.mainloop()
+
+    def iniciar_juego_libre(self):
+        self.menu_window.destroy()
+        root = tk.Tk()
+        root.title("Laberinto - Modo Libre")
+        root.attributes('-fullscreen', True)
+        JuegoLibre(root)
+        root.mainloop()
+
     def cargar_juego(self):
         messagebox.showinfo("Cargar Juego", "Funcionalidad en desarrollo")
         self.iniciar_juego_clasico()
 
-    """
-    Construye el panel de control superior con todos los elementos interactivos:
-    - Botones para generación y resolución del laberinto
-    - Selector de tamaño mediante Spinbox (rango 5-20)
-    - Botones de navegación entre caminos
-    - Sección especial para mostrar caminos destacados
-    - Área de mensajes con sistema de colores por tipo (error/éxito/info)
-    - Configura estilos y disposición de todos los widgets
-    """
-    def crear_controles(self):
-        frame_controles = ttk.Frame(self.root, padding="10")   #Frame controles
-        frame_controles.pack(fill=tk.X)
+class JuegoBase:
+    def __init__(self,root):
+        self.root = root
+        self.matriz = []
+        self.caminos = []
+        self.camino_actual = 0
+        self.caminos_especiales = {}
+        self.mensaje_var = tk.StringVar()
+        self.btn_siguiente = None 
+        self.label_mensaje = None 
+        self.root.config(bg='#2d3436')
+        self.setup_controles()
+        self.setup_estilos()
 
-        #Generar Laberinto btn
-        btn_generar = ttk.Button(frame_controles, text="Generar Laberinto", command=self.generar_laberinto)  
-        btn_generar.pack(side=tk.LEFT, padx=5)
+    def setup_controles(self):
+        # Frame principal
+        self.frame_principal = tk.Frame(self.root, bg='#2d3436')
+        self.frame_principal.pack(expand=True, fill=tk.BOTH)
 
-        #Resolver Laberinto btn
-        btn_resolver = ttk.Button(frame_controles, text="Mostrar caminos", command=self.resolver_laberinto)
-        btn_resolver.pack(side=tk.LEFT, padx=5)
-
-        #Seleccion de tamaño de laberinto, configuraciones
-        label_tamano = ttk.Label(frame_controles, text="Tamaño: ")
-        label_tamano.pack(side=tk.LEFT, padx=5)
-
-        self.combo_dimensiones = ttk.Combobox(frame_controles,state = "readonly", values = [5,10,15,20,25],font=("Courier New", 15), style="TCombobox")
-        self.combo_dimensiones.pack(side=tk.LEFT, padx=5)
-
-        self.frame_laberinto =ttk.Frame(self.root)
-        self.frame_laberinto.place()
+        self.frame_controles = tk.Frame(self.frame_principal, bg='#3c3f41', padx=10, pady=10)
+        self.frame_controles.pack(fill=tk.X)
+        
+        # Área del laberinto
+        self.frame_laberinto = tk.Frame(self.frame_principal, bg='#2d3436')
         self.frame_laberinto.pack(expand=True, fill=tk.BOTH)
 
-        #Boton camino siguiente
-        self.btn_siguiente = ttk.Button(frame_controles, text= "Siguiente camino", command=self.mostrar_siguiente_camino,
-                                        state=tk.DISABLED)
-        self.btn_siguiente.pack(side=tk.LEFT, padx=5)
+        #Botones Comunes
+        ttk.Button(self.frame_controles, text="Generar Laberinto", command=self.generar_laberinto).pack(side=tk.LEFT, padx=5)
+        ttk.Button(self.frame_controles, text="Volver al Menú", command=self.volver_menu).pack(side=tk.RIGHT, padx=5)
+        
+        # Selector de tamaño
+        self.combo_dimensiones = ttk.Combobox(self.frame_controles, values=[5,10,15,20,25], state="readonly")
+        self.combo_dimensiones.pack(side=tk.LEFT, padx=5)
+        self.combo_dimensiones.set(10)
 
-        # Mensajes 
-        self.mensaje_var = tk.StringVar()
-        self.mensaje_var.set("Listo para generar laberinto")
-        self.label_mensaje = ttk.Label(frame_controles, textvariable=self.mensaje_var,
-                                       relief=tk.SUNKEN,padding=(5,2))
-        self.label_mensaje.pack(side=tk.RIGHT, fill=tk.X, expand=True)
-        self.label_mensaje.config(
-            font=('Arial', 10),
-            anchor=tk.W,  # Alinear texto a la izquierda
-            wraplength=300  # Permite múltiples líneas
-        )
-
-        frame_caminos = ttk.Frame(frame_controles)
-        frame_caminos.pack(side=tk.LEFT, padx=10, pady=5)
-
-        btn_corto = ttk.Button(frame_caminos, text="Camino corto", command=lambda: self.mostrar_camino_especial('corto'))
-        btn_corto.pack(side=tk.LEFT, padx=2)
-
-        btn_optimo = ttk.Button(frame_caminos, text="Camino óptimo", command=lambda: self.mostrar_camino_especial('optimo'))
-        btn_optimo.pack(side=tk.LEFT, padx=2)
-
-        btn_largo = ttk.Button(frame_caminos, text="Camino largo", command=lambda: self.mostrar_camino_especial('largo'))
-        btn_largo.pack(side=tk.LEFT, padx=2)
+    def setup_estilos(self):
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure('TButton', font=('Arial', 10, 'bold'), padding=6, background='#3c3f41', foreground='white')
+        style.map('TButton', background=[('active', '#0984e3')])
+        style.configure('TCombobox', fieldbackground='#3c3f41', foreground='white')
 
     """
     Genera un laberinto válido mediante el siguiente proceso:
@@ -217,6 +192,162 @@ class InterfazLaberinto:
 
     
     """
+    Sistema de renderizado gráfico del laberinto:
+    - Asigna colores específicos a:
+      * 0 (muro): gris oscuro
+      * 1 (camino): blanco
+      * 2 (inicio): azul
+      * 3 (fin): rojo
+    - Resalta celdas del camino con el color especificado
+    """
+    def dibujar_matriz_especial(self, camino, color_camino):
+        """Dibuja la matriz resaltanmdp un camino con color especial"""
+        for i in range(len(self.matriz)):
+            for j in range(len(self.matriz[i])):
+                valor = self.matriz[i][j]
+                g_color = "#636e72" if valor == 0 else "#dfe6e9"  # Muro/Camino base
+                text = ""
+                estado = tk.NORMAL
+                if valor == 0:
+                    bg_color = "gray20"
+                    text = ""
+                    estado = tk.DISABLED
+                elif valor == 1:
+                    bg_color = "white"
+                    text = ""
+                    estado = tk.NORMAL
+                elif valor == 2:
+                    bg_color = "#3498db"
+                    text = "J"
+                    estado = tk.NORMAL
+                elif valor == 3:
+                    bg_color = "#e74c3c"
+                    text = "F"
+                    estado = tk.NORMAL
+                elif [i,j] == self.jugador_pos:
+                    bg_color = "#3498db"
+                    text = "J"
+
+                if [i, j] in camino:
+                    bg_color = color_camino
+                    text = "•"
+
+                boton = tk.Button(
+                    self.frame_laberinto, text=text, bg=bg_color, width=3, height=1,
+                    relief="raised", font=('Arial', 10), state=estado,
+                    command=lambda x=i, y=j: self.NodoInicio(x, y)
+                )
+                boton.grid(row=i, column=j, padx=1, pady=1)
+
+
+
+
+    
+
+
+
+    def mostrar_mensaje(self, mensaje, tipo='info'):
+        colores = {
+            'info': 'black',
+            'error': 'red',
+            'exito': 'green',
+            'debug': 'blue'
+        }
+        self.mensaje_var.set(mensaje)
+        self.label_mensaje.config(foreground=colores.get(tipo, 'black'),
+                                  font=('Arial', 10, 'italic' if tipo == 'debug' else 'normal'))
+        self.root.update_idletasks()
+
+
+    def volver_menu(self):
+        self.root.destroy()
+        InterfazLaberinto()
+#--------------------------------------------------------------------------------   
+""""
+    Construye el panel de control superior con todos los elementos interactivos:
+    - Botones para generación y resolución del laberinto
+    - Selector de tamaño mediante Spinbox (rango 5-20)
+    - Botones de navegación entre caminos
+    - Sección especial para mostrar caminos destacados
+    - Área de mensajes con sistema de colores por tipo (error/éxito/info)
+    - Configura estilos y disposición de todos los widgets
+"""
+class JuegoClasico(JuegoBase):
+    def __init__(self, root):
+        super().__init__(root)
+        self.setup_controles_clasico()
+        # Inicialización de variables específicas
+        self.caminos = []
+        self.camino_actual = 0
+        self.caminos_especiales = {}
+
+    def setup_controles_clasico(self):
+        # Botones específicos del modo clásico
+        frame_navegacion = tk.Frame(self.frame_controles, bg='#3c3f41')
+        frame_navegacion.pack(side=tk.LEFT, padx=10)
+        
+         # Botón Resolver
+        ttk.Button(
+            frame_navegacion,
+            text="Resolver Laberinto",
+            command=self.resolver_laberinto,
+            style='TButton'
+        ).pack(side=tk.LEFT, padx=5)
+        
+        # Botón Siguiente Camino
+        self.btn_siguiente = ttk.Button(
+            frame_navegacion,
+            text="Siguiente Camino",
+            command=self.mostrar_siguiente_camino,
+            state=tk.DISABLED,
+            style='TButton'
+        )
+        self.btn_siguiente.pack(side=tk.LEFT, padx=5)
+
+         # Botones de caminos especiales
+        frame_especiales = ttk.Frame(self.frame_controles)
+        frame_especiales.pack(side=tk.LEFT, padx=10)
+
+        ttk.Label(frame_especiales, text="Caminos:").pack(side=tk.LEFT)
+        
+         # Botones de caminos especiales
+        ttk.Button(
+            frame_especiales,
+            text="Más Corto",
+            command=lambda: self.mostrar_camino_especial('corto'),
+            style='TButton'
+        ).pack(side=tk.LEFT, padx=2)
+        
+        ttk.Button(
+            frame_especiales,
+            text="Óptimo",
+            command=lambda: self.mostrar_camino_especial('optimo'),
+            style='TButton'
+        ).pack(side=tk.LEFT, padx=2)
+        
+        ttk.Button(
+            frame_especiales,
+            text="Más Largo",
+            command=lambda: self.mostrar_camino_especial('largo'),
+            style='TButton'
+        ).pack(side=tk.LEFT, padx=2)
+        
+        # Configuración de estilos específicos
+        self.root.style = ttk.Style()
+        self.root.style.configure('Special.TButton', 
+                                foreground='white',
+                                background='#3498db',
+                                font=('Arial', 10, 'bold'))
+
+
+    # Área de mensajes (adaptada)
+        self.mensaje_var = tk.StringVar()
+        ttk.Label(self.frame_controles, 
+                textvariable=self.mensaje_var,
+                relief=tk.SUNKEN,
+                padding=(5,2)).pack(side=tk.RIGHT, fill=tk.X, expand=True)
+    
+    """
     Coordina el proceso de resolución completo:
     1. Valida que exista un laberinto generado
     2. Crea copia de seguridad de la matriz original
@@ -233,13 +364,6 @@ class InterfazLaberinto:
             return
         
         self.matriz_original = [fila[:] for fila in self.matriz]
-
-
-        #Seleccionar Posicion
-        tamano = len(self.matriz)
-
-        self.dibujar_matriz()
-
         self.caminos = backtracking(self.matriz)
 
         if self.caminos:
@@ -255,7 +379,21 @@ class InterfazLaberinto:
             self.dibujar_matriz()
 
 
-#Encuentra los caminos mas corto, largo y optimo
+    def mostrar_siguiente_camino(self):
+        if not self.caminos:
+            return
+        
+        self.matriz = [fila[:] for fila in self.matriz_original]
+
+        #Volver a marcar inicio y fin
+        tamano = len(self.matriz)
+
+        #Siguiente Camino
+        self.camino_actual = (self.camino_actual + 1) % len(self.caminos)
+        self.dibujar_matriz_especial(self.caminos[self.camino_actual], 'green')
+
+
+    #Encuentra los caminos mas corto, largo y optimo
     def encontrar_caminos_especiales(self):
         if not self.caminos:
             return
@@ -263,7 +401,19 @@ class InterfazLaberinto:
         self.caminos_especiales['largo'] = max(self.caminos, key=len)
         self.caminos_especiales['optimo'] = self.encontrar_camino_optimo()
 
+    def NodoInicio(self, fila, columna):
+        if self.matriz[fila][columna] == 1:
+        # En el caso de que hubiera una salida ya establecida, esta se eliminará
+            for i in range(len(self.matriz)):
+                for j in range(len(self.matriz[i])):
+                    if self.matriz[i][j] == 2:
+                        self.matriz[i][j] = 1
+            # Se agregá la nueva salida en el laberinto
+            self.matriz[fila][columna] = 2
+            self.dibujar_matriz_especial([],None)
 
+
+#-------------------------------------------------------------------
     """
     Selección inteligente del mejor camino:
     - Criterios combinados:
@@ -280,7 +430,6 @@ class InterfazLaberinto:
         caminos_ordenados = sorted(self.caminos, key=len)
         #Elegimos el 25% de los mas cortos
         mejores_caminos = caminos_ordenados[:max(1, len(caminos_ordenados)//4)]
-
         return min(mejores_caminos, key=self.calcular_cambios_direccion)
     
 
@@ -321,89 +470,172 @@ class InterfazLaberinto:
         self.mostrar_mensaje("Mostrando camino "+ tipo, 'info')
 
 
+class JuegoLibre(JuegoBase):
+    def __init__(self, root):
+        super().__init__(root)
+        self.setup_controles_libre()
+        self.jugador_pos = None
+        self.fin_pos = None
+        self.bind_teclas()
 
-    """
-    Sistema de renderizado gráfico del laberinto:
-    - Asigna colores específicos a:
-      * 0 (muro): gris oscuro
-      * 1 (camino): blanco
-      * 2 (inicio): azul
-      * 3 (fin): rojo
-    - Resalta celdas del camino con el color especificado
-    """
-    def dibujar_matriz_especial(self, camino, color_camino):
-        """Dibuja la matriz resaltanmdp un camino con color especial"""
-        for i in range(len(self.matriz)):
-            for j in range(len(self.matriz[i])):
-                valor = self.matriz[i][j]
+    def setup_controles_libre(self):
+            """Controles específicos del modo libre"""
+            frame_controles = ttk.Frame(self.frame_controles)
+            frame_controles.pack(side=tk.LEFT, padx=10)
+        
+            # Botón para seleccionar inicio
+            ttk.Button(
+                frame_controles,
+                text="Seleccionar Inicio",
+                command=self.modo_seleccion_inicio,
+                style='TButton'
+            ).pack(side=tk.LEFT, padx=5)
+            
+            # Botón para seleccionar fin
+            ttk.Button(
+                frame_controles,
+                text="Seleccionar Fin",
+                command=self.modo_seleccion_fin,
+                style='TButton'
+            ).pack(side=tk.LEFT, padx=5)
+            
+            # Botón para reiniciar posición
+            ttk.Button(
+                frame_controles,
+                text="Reiniciar Jugador",
+                command=self.reiniciar_jugador,
+                style='TButton'
+            ).pack(side=tk.LEFT, padx=5)
+            
+            # Etiqueta de instrucciones
+            self.label_instrucciones = ttk.Label(
+                self.frame_controles,
+                text="Usa las flechas del teclado para moverte",
+                foreground='white',
+                background='#3c3f41'
+            )
+            self.label_instrucciones.pack(side=tk.RIGHT, padx=10)
 
-                if valor == 0:
-                    bg_color = "gray20"
-                    text = ""
-                    estado = tk.DISABLED
-                elif valor == 1:
-                    bg_color = "white"
-                    text = ""
-                    estado = tk.NORMAL
-                elif valor == 2:
-                    bg_color = "blue"
-                    text = "I"
-                    estado = tk.NORMAL
-                elif valor == 3:
-                    bg_color = "red"
-                    text = "F"
-                    estado = tk.NORMAL
+    def bind_teclas(self):
+        self.root.bind('<Up>', lambda e: self.mover_jugador(-1, 0))
+        self.root.bind('<Down>', lambda e: self.mover_jugador(1, 0))
+        self.root.bind('<Left>', lambda e: self.mover_jugador(0, -1))
+        self.root.bind('<Right>', lambda e: self.mover_jugador(0, 1))
+        
+    def generar_laberinto(self):
+        """Genera el laberinto y reinicia posiciones"""
+        try:
+            tamano = int(self.combo_dimensiones.get())
+            self.matriz = crear_Matriz(tamano, modo_clasico=False)  # Modo libre - sin meta automática
+        
+            # Limpiar y dibujar el laberinto
+            for widget in self.frame_laberinto.winfo_children():
+                widget.destroy()
+            self.dibujar_matriz()
+            
+            self.caminos = []
+            self.camino_actual = 0
+            if hasattr(self, 'btn_siguiente'):
+                self.btn_siguiente.config(state=tk.DISABLED)
+            
+            # Reiniciar posiciones
+            self.jugador_pos = None
+            self.fin_pos = None
+            self.mostrar_mensaje("Laberinto generado. Selecciona inicio (J) y luego meta (F)", 'info')
+        
+        except ValueError:
+            self.mostrar_mensaje("Error: Ingrese un tamaño válido (5-25)", 'error')
 
-                if [i, j] in camino:
-                    bg_color = color_camino
-                    text = "•"
-
-                boton = tk.Button(
-                    self.frame_laberinto, text=text, bg=bg_color, width=3, height=1,
-                    relief="raised", font=('Arial', 10), state=estado,
-                    command=lambda x=i, y=j: self.NodoInicio(x, y)
-                )
-                boton.grid(row=i, column=j, padx=1, pady=1)
+    def modo_seleccion_inicio(self):
+        """Selecciona punto inicial"""
+        self.modo_seleccion = 'inicio'
+        self.mostrar_mensaje("Haz clic en la celda de inicio", 'info')
+        
+    def modo_seleccion_fin(self):
+        """Selecciona punto final"""
+        self.modo_seleccion = 'fin'
+        self.mostrar_mensaje("Haz clic en la celda de fin", 'info')
 
     def NodoInicio(self, fila, columna):
-        if self.matriz[fila][columna] == 1:
-        # En el caso de que hubiera una salida ya establecida, esta se eliminará
-            for i in range(len(self.matriz)):
-                for j in range(len(self.matriz[i])):
-                    if self.matriz[i][j] == 3:
-                        self.matriz[i][j] = 1
-            # Se agregá la nueva salida en el laberinto
-            self.matriz[fila][columna] = 3
-            self.dibujar_matriz_especial([],None)
+        """Sobreescribe el método para selección manual"""
+        if self.modo_seleccion == 'inicio':
+            if self.matriz[fila][columna] == 1:
+                self.establecer_inicio(fila, columna)
+        elif self.modo_seleccion == 'fin':
+            if self.matriz[fila][columna] == 1:
+                self.establecer_fin(fila, columna)
+        else:
+            super().NodoInicio(fila, columna)
 
 
-    def mostrar_siguiente_camino(self):
-        if not self.caminos:
+    def establecer_inicio(self, fila, columna):
+        """Coloca al jugador en la posición inicial"""
+        # Elimina posición anterior si existe
+        if self.jugador_pos:
+            i, j = self.jugador_pos
+            self.matriz[i][j] = 1
+            
+        self.jugador_pos = [fila, columna]
+        self.matriz[fila][columna] = 2  # 2 representa al jugador
+        self.dibujar_matriz()
+        self.mostrar_mensaje(f"Inicio establecido en ({fila}, {columna})", 'exito')
+
+
+    def establecer_fin(self, fila, columna):
+        """Establece la posición final"""
+        # Elimina posición anterior si existe
+        if self.fin_pos:
+            i, j = self.fin_pos
+            self.matriz[i][j] = 1
+            
+        self.fin_pos = [fila, columna]
+        self.matriz[fila][columna] = 3  # 3 representa el fin
+        self.dibujar_matriz()
+        self.mostrar_mensaje(f"Fin establecido en ({fila}, {columna})", 'exito')
+
+
+    def mover_jugador(self, dx, dy):
+        """Mueve al jugador según las teclas presionadas"""
+        if not self.jugador_pos:
+            self.mostrar_mensaje("Establece primero la posición inicial", 'error')
             return
+            
+        x, y = self.jugador_pos
+        nuevo_x, nuevo_y = x + dx, y + dy
         
-        self.matriz = [fila[:] for fila in self.matriz_original]
+        # Verifica límites del laberinto
+        if (0 <= nuevo_x < len(self.matriz)) and (0 <= nuevo_y < len(self.matriz[0])):
+            # Verifica si es una celda transitable
+            if self.matriz[nuevo_x][nuevo_y] in [1, 3]:  
+                self.matriz[x][y] = 1  # Limpia la posición anterior
+                self.jugador_pos = [nuevo_x, nuevo_y]
+                
+                # Verifica si llegó al final
+                if self.fin_pos and nuevo_x == self.fin_pos[0] and nuevo_y == self.fin_pos[1]:
+                    self.mostrar_mensaje("¡Felicidades! Llegaste al final", 'exito')
+                    self.matriz[nuevo_x][nuevo_y] = 3
+                else:
+                    self.matriz[nuevo_x][nuevo_y] = 2  # Nueva posición
+                
+                self.dibujar_matriz()
+            else:
+                self.mostrar_mensaje("Movimiento no permitido", 'error')
+        else:
+            self.mostrar_mensaje("No puedes salir del laberinto", 'error')
 
-        #Volver a marcar inicio y fin
-        tamano = len(self.matriz)
-
-        #Siguiente Camino
-        self.camino_actual = (self.camino_actual + 1) % len(self.caminos)
-        self.dibujar_matriz_especial(self.caminos[self.camino_actual], 'green')
 
 
-    def mostrar_mensaje(self, mensaje, tipo='info'):
-        colores = {
-            'info': 'black',
-            'error': 'red',
-            'exito': 'green',
-            'debug': 'blue'
-        }
-        self.mensaje_var.set(mensaje)
-        self.label_mensaje.config(foreground=colores.get(tipo, 'black'),
-                                  font=('Arial', 10, 'italic' if tipo == 'debug' else 'normal'))
-        self.root.update_idletasks()
-
-#CAMBIO ------------------------------------------------------
+    def reiniciar_jugador(self):
+        """Vuelve al jugador a la posición inicial"""
+        if self.jugador_pos and self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] == 2:
+            self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] = 1
+            
+        if self.fin_pos:
+            self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
+            
+        self.jugador_pos = None
+        self.dibujar_matriz()
+        self.mostrar_mensaje("Posición del jugador reiniciada", 'info')
 
 """
     Validador de laberintos usando DFS:
@@ -501,7 +733,7 @@ Esta funcion genera un laberinto utilizando backtracking
     6. Por ultimo, se marca una posición aleatoria como nodo final.
 """
 
-def crear_Matriz(tamano):
+def crear_Matriz(tamano, modo_clasico=True):
     if tamano % 2 == 0:
         tamano += 1
 
@@ -564,11 +796,12 @@ def crear_Matriz(tamano):
 
     laberinto_con_borde.append(borde)  # última fila de pared
 
-    nodoFinal = nodo_Aleatorio(laberinto_con_borde)
-    laberinto_con_borde[nodoFinal[0]][nodoFinal[1]] = 2
+    if modo_clasico:
+        laberinto_con_borde[-2][-2] = 3 
     
     romperParedes(laberinto_con_borde, tamano//2)
     return laberinto_con_borde
+    
 
 def backtracking(matriz):
     listaCaminos = []
