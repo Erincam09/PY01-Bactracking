@@ -8,39 +8,117 @@ from tkinter import messagebox
 
 class InterfazLaberinto:
     def __init__(self):
-        menu_window = tk.Tk()
-        menu_window.geometry("1000x600")
-        menu_window.resizable(0, 0)
-        menu_window.title("Menu Principal")
-        menu_window.config(bg="black")
+        self.menu_window = tk.Tk()
+        self.menu_window.geometry("1000x600")
+        self.menu_window.resizable(0, 0)
+        self.menu_window.title("Menu Principal")
+        self.fondo_menu()
+        self.botones_menu()
+        self.menu_window.mainloop()
+        
 
-        def Cerrar_ventana1():
-            menu_window.destroy()
-            
-        def Cerrar_ventana3():
-            menu_window.destroy()
-            self.juego()
+    """
+    Funcion para cargar automaticamente el fondo elegido para el menu al iniciar la app
+    """
+    def fondo_menu(self):
+        try:
+            self.bg_image = Image.open("pic/fondo_menu.png")
+            self.bg_image = self.bg_image.resize((1000, 600), Image.LANCZOS)
+            self.bg_photo = ImageTk.PhotoImage(self.bg_image)
+                
+            # Crea un Label con la imagen
+            bg_label = tk.Label(self.menu_window, image=self.bg_photo)
+            bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-        Jugar = tk.Button(text = "Jugar", font=("Courier new", 15, "bold"), fg="white", bg="mediumPurple1", width=20, command=lambda:Cerrar_ventana1())
-        Jugar.place(x = 180, y = 220)
-        modoSoluciones = tk.Button(text = "Soluciones", font=("Courier new", 15, "bold"), fg="white", bg="mediumPurple1", width=20, command=lambda:Cerrar_ventana3())
-        modoSoluciones.place(x = 180, y = 350)
+        except Exception as e:
+            print("Error al cargar imagen", e)
+            self.menu_window.config(bg="black")
 
-        menu_window.mainloop()
+    """
+    Carga los botones del menu inicial despues de cargar la imagen
+    """
+    def botones_menu(self):
+        #Frame Contenedor de botones para el menu principal
+        button_frame = tk.Frame(self.menu_window, bg='', bd=0)  # Frame transparente
+        button_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-    def juego(self):
-        root = tk.Tk()
-        self.root = root
-        self.root.title("Laberinto")
+        #Estilo para los botones
+        button_style = {
+            "font": ("Arial", 16, "bold"),
+            "width": 15,
+            "height": 2,
+            "bd": 0,
+            "relief": "raised",
+            "fg": "white",
+            "bg": "#3498db",
+            "activebackground": "#2980b9"
+        }
+
+        #Boton 1 (Modo Clasico)
+        tk.Button(
+            button_frame,
+            text="Juego 1\n(Modo Clásico)",
+            command=self.iniciar_juego_clasico,
+            **button_style
+        ).pack(pady=15, fill=tk.X)
+
+        #Boton 2 (Modo jugador)
+        tk.Button(
+            button_frame,
+            text="Juego 2\n(Próximamente)",
+            state=tk.DISABLED,
+            **{**button_style, "bg": "#7f8c8d", "activebackground": "#6c7a89"}
+        ).pack(pady=15, fill=tk.X)
+
+        # Botón Cargar Juego
+        tk.Button(
+            button_frame,
+            text="Cargar Juego",
+            command=self.cargar_juego,
+            **{**button_style, "bg": "#2ecc71", "activebackground": "#27ae60"}
+        ).pack(pady=15, fill=tk.X)
+
+
+    def iniciar_juego_clasico(self):
+        """Cierra el menú y abre la interfaz del juego con controles"""
+        self.menu_window.destroy()  # Cierra la ventana del menú
+        
+        # Crea la ventana principal del juego
+        self.root = tk.Tk()
+        self.root.title("Laberinto - Modo Clásico")
         self.root.attributes('-fullscreen', True)
-        self.root.resizable(0, 0)
         self.root.config(bg="black")
-
+        
+        # Inicializa variables del juego
         self.matriz = []
         self.caminos = []
         self.camino_actual = 0
         self.caminos_especiales = {}
+        
+        # Crea los controles directamente
         self.crear_controles()
+        self.root.mainloop()
+    
+    def cargar_juego(self):
+        messagebox.showinfo("Cargar Juego", "Funcionalidad en desarrollo")
+        self.iniciar_juego_clasico()
+
+
+        def Cerrar_ventana1():
+            self.menu_window.destroy()
+            
+        def Cerrar_ventana3():
+            self.menu_window.destroy()
+            self.iniciar_juego_clasico()
+
+            Jugar = tk.Button(text = "Jugar", font=("Courier new", 15, "bold"), fg="white", bg="mediumPurple1", width=20, command=lambda:Cerrar_ventana1())
+            Jugar.place(x = 180, y = 220)
+            modoSoluciones = tk.Button(text = "Soluciones", font=("Courier new", 15, "bold"), fg="white", bg="mediumPurple1", width=20, command=lambda:Cerrar_ventana3())
+            modoSoluciones.place(x = 180, y = 350)
+
+            self.menu_window.mainloop()
+
+    
 
 
     """
