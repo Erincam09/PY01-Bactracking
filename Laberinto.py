@@ -148,6 +148,16 @@ class JuegoBase:
         self.combo_dimensiones.pack(side=tk.LEFT, padx=5)
         self.combo_dimensiones.set(10)
 
+        self.label_mensaje = ttk.Label(
+            self.frame_controles,
+            textvariable=self.mensaje_var,
+            relief=tk.SUNKEN,
+            padding=(5,2),
+            background='#3c3f41',
+            foreground='white'
+    )
+        self.label_mensaje.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+
     def setup_estilos(self):
         style = ttk.Style()
         style.theme_use('clam')
@@ -173,15 +183,24 @@ class JuegoBase:
             for widget in self.frame_laberinto.winfo_children():
                 widget.destroy()
 
+            # Establecer posiciones (ajustadas al tamaño real)
+            self.jugador_pos = [1, 1]  # Fila 1, Columna 1
+            self.fin_pos = [len(self.matriz)-2, len(self.matriz[0])-2]
+
+            self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] = 2
+            self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
+
             self.dibujar_matriz()
 
             self.caminos = []
             self.camino_actual = 0
-            self.btn_siguiente.config(state=tk.DISABLED)
+            if hasattr(self, 'btn_siguiente'):
+                self.btn_siguiente.config(state=tk.DISABLED)
             self.mostrar_mensaje("Laberinto  generado con exito", 'exito')
         except ValueError:
             self.mostrar_mensaje("Error: Por favor ingrese un tamaño de matriz válido (5x5 - 25x25)", 'error')
-
+        except IndexError as e:
+            self.mostrar_mensaje(f"Error al generar laberinto: {str(e)}", 'error')
 
     def dibujar_matriz(self, camino=None):
         if camino is not None:
@@ -338,14 +357,7 @@ class JuegoClasico(JuegoBase):
                                 foreground='white',
                                 background='#3498db',
                                 font=('Arial', 10, 'bold'))
-
-
-    # Área de mensajes (adaptada)
-        self.mensaje_var = tk.StringVar()
-        ttk.Label(self.frame_controles, 
-                textvariable=self.mensaje_var,
-                relief=tk.SUNKEN,
-                padding=(5,2)).pack(side=tk.RIGHT, fill=tk.X, expand=True)
+        
     
     """
     Coordina el proceso de resolución completo:
@@ -363,6 +375,13 @@ class JuegoClasico(JuegoBase):
             self.mostrar_mensaje("Primero genera un laberinto", 'error')
             return
         
+        # Verificar que haya inicio (forma correcta)
+        inicio_encontrado = any(2 in fila for fila in self.matriz)
+    
+        if not inicio_encontrado:
+            self.mostrar_mensaje("Debes seleccionar un punto de inicio primero", 'error')
+            return
+
         self.matriz_original = [fila[:] for fila in self.matriz]
         self.caminos = backtracking(self.matriz)
 
@@ -371,26 +390,24 @@ class JuegoClasico(JuegoBase):
             self.mostrar_mensaje("Se encontraron " + str(len(self.caminos)) + " caminos", 'exito')
             self.camino_actual = 0
             self.dibujar_matriz(self.caminos[self.camino_actual])
-            self.btn_siguiente.config(state=tk.NORMAL)
-
-        else:
-            self.mostrar_mensaje("No se encontraron caminos", 'error')
-            self.matriz = [fila[:] for fila in self.matriz_original]
-            self.dibujar_matriz()
+            if hasattr(self, 'btn_siguiente'):
+                self.btn_siguiente.config(state=tk.NORMAL)
+            else:
+                self.mostrar_mensaje("No se encontraron caminos", 'error')
+                self.matriz = [fila[:] for fila in self.matriz_original]
+                self.dibujar_matriz()
 
 
     def mostrar_siguiente_camino(self):
-        if not self.caminos:
+        if not hasattr(self, 'caminos') or not self.caminos:
             return
         
         self.matriz = [fila[:] for fila in self.matriz_original]
 
-        #Volver a marcar inicio y fin
-        tamano = len(self.matriz)
-
         #Siguiente Camino
         self.camino_actual = (self.camino_actual + 1) % len(self.caminos)
         self.dibujar_matriz_especial(self.caminos[self.camino_actual], 'green')
+        self.mostrar_mensaje(f"Mostrando camino {self.camino_actual + 1} de {len(self.caminos)}", 'info')
 
 
     #Encuentra los caminos mas corto, largo y optimo
@@ -408,9 +425,10 @@ class JuegoClasico(JuegoBase):
                 for j in range(len(self.matriz[i])):
                     if self.matriz[i][j] == 2:
                         self.matriz[i][j] = 1
-            # Se agregá la nueva salida en el laberinto
+            # Se agrega la nueva salida en el laberinto
             self.matriz[fila][columna] = 2
             self.dibujar_matriz_especial([],None)
+            self.mostrar_mensaje(f"Inicio establecido en ({fila}, {columna})", 'exito')
 
 
 #-------------------------------------------------------------------
@@ -531,6 +549,17 @@ class JuegoLibre(JuegoBase):
             # Limpiar y dibujar el laberinto
             for widget in self.frame_laberinto.winfo_children():
                 widget.destroy()
+
+            #Establecemos posiciones en modo libre
+            self.jugador_pos = [1,1]
+            self.fin_pos = [tamano, tamano]
+
+
+            #Marcar en la matriz
+            self.matriz[[self.jugador_pos[0]][self.jugador_pos[1]]] = 2
+            self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
+
+
             self.dibujar_matriz()
             
             self.caminos = []
@@ -797,7 +826,9 @@ def crear_Matriz(tamano, modo_clasico=True):
     laberinto_con_borde.append(borde)  # última fila de pared
 
     if modo_clasico:
-        laberinto_con_borde[-2][-2] = 3 
+        laberinto_con_borde[-2][-2] = 3
+    else:
+        pass
     
     romperParedes(laberinto_con_borde, tamano//2)
     return laberinto_con_borde
@@ -873,53 +904,4 @@ def nodo_Aleatorio(matriz):
         return random.choice(posibles)
 
 
-
-""""
-def guardar():
-    partida_window = Tk()
-    partida_window.geometry("400x200")
-    partida_window.title("Partida")
-    partida_window.config(bg="mediumpurple1")
-    label_nombre = tk.Label(partida_window,text="Ingrese el nombre de la partida:", bg="mediumpurple1", font=("Courier New", 12), fg="black")
-    label_nombre.place(x=35, y=30)
-    nombrePart = tk.Entry(partida_window, relief="sunken", font=("Courier New", 12), width=32)
-    nombrePart.place(x=35, y=80)
-    boton = tk.Button(partida_window,text="Guardar Partida", font=("Courier New", 12), bg="white", fg="black", command=lambda:agregarPartida(nombrePart.getText()))
-    boton.place(x=111, y=130)
-
-    nombreArchivo = "Partidas.json"
-    try:
-        archivo = open("Partidas.json","r")
-        archivo.close()
-    except:
-        archivo = open(nombreArchivo,"w")
-        archivo.write("{}")
-        archivo.close()
-
-    partida_window.mainloop()
-
-def agregarPartida(nombre):
-    Partidas = {}
-    
-    try:
-        archivo= open("Partidas.json","r")
-        Partidas = json.load(archivo)
-        archivo.close
-    except:
-        archivo = open("Partidas.json","w")
-        archivo.close
-
-    Partida = {}
-    Partida["Nombre de la Partida"] = nombre
-    Partida["Matriz"] = matriz2
-    Partidas[nombre] = Partida
-    archivo = open("Partidas.json", "r+")
-    json.dump(Partidas, archivo, indent=7)
-    archivo.close()
-
-    messagebox.showinfo("Guardado", "Tu partida ha quedado guardada")
-    partida_window.destroy()
-    juego_window.destroy()
-    
-"""
 InterfazLaberinto()
