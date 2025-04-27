@@ -5,15 +5,25 @@ from collections import deque
 import json
 from PIL import Image, ImageTk
 from tkinter import messagebox
+import os
 
+Guardado = False
 class InterfazLaberinto:
     def __init__(self):
+        global Guardado
         self.menu_window = tk.Tk()
-        self.menu_window.geometry("1000x600")
+        ancho_pantalla = self.menu_window.winfo_screenwidth()
+        alto_pantalla = self.menu_window.winfo_screenheight()
+        alto_ventana = 600
+        ancho_ventana = 1000
+        x = (ancho_pantalla // 2) - (ancho_ventana // 2)
+        y = (alto_pantalla // 2) - (alto_ventana // 2)
+        self.menu_window.geometry(f"{ancho_ventana}x{alto_ventana}+{x}+{y}")
         self.menu_window.resizable(0, 0)
-        self.menu_window.title("Menu Principal")
+        self.menu_window.overrideredirect(True)
         self.fondo_menu()
         self.botones_menu()
+        Guardado = False
         self.menu_window.mainloop()
         
 
@@ -91,72 +101,146 @@ class InterfazLaberinto:
             "bg": "#7b241c",  # Rojo oscuro/marrón
             "activebackground": "#922b21",
             "fg": "#fadbd8"}  # Texto más claro
-    ).pack(side=tk.LEFT, padx=15)
+        ).pack(side=tk.LEFT, padx=15)
         
     def iniciar_juego_clasico(self):
         self.menu_window.destroy()
-        root = tk.Tk()
-        root.title("Laberinto - Modo Clásico")
-        root.attributes('-fullscreen', True)
-        JuegoClasico(root)
-        root.mainloop()
+        JuegoClasico(None)
 
     def iniciar_juego_libre(self):
         self.menu_window.destroy()
-        root = tk.Tk()
-        root.title("Laberinto - Modo Libre")
-        root.attributes('-fullscreen', True)
-        JuegoLibre(root)
-        root.mainloop()
+        JuegoLibre(None)
 
     def cargar_juego(self):
-        messagebox.showinfo("Cargar Juego", "Funcionalidad en desarrollo")
-        self.iniciar_juego_clasico()
+        Partidas = []
+        self.Modo = None
+        if not os.path.exists("Partidas.json") or os.path.getsize("Partidas.json") == 0:
+            messagebox.showinfo("Intentelo despues", "No hay ninguna partida guardada")
+            return
+        else:
+            with open("Partidas.json", "r") as archivo:
+                Partidas = json.load(archivo)
+                nombres = [partida["Numero de la Partida"] for partida in Partidas.values()]  # Cambié esta línea
 
+        # Crear la ventana para cargar partida
+        self.CargarJ = tk.Tk()
+        self.CargarJ.title("Laberinto - Cargar Partida")
+        ancho_pantalla = self.CargarJ.winfo_screenwidth()
+        alto_pantalla = self.CargarJ.winfo_screenheight()
+        alto_ventana = 350
+        ancho_ventana = 500
+        x = (ancho_pantalla // 2) - (ancho_ventana // 2)
+        y = (alto_pantalla // 2) - (alto_ventana // 2)
+        self.CargarJ.geometry(f"{ancho_ventana}x{alto_ventana}+{x}+{y}")
+        self.CargarJ.config(bg='#2d3436')
+        self.CargarJ.resizable(0, 0)
+        self.CargarJ.overrideredirect(True)
+        label2 = tk.Label(self.CargarJ, text="Seleccione el numero de partida:", font=("Courier new", 15, "bold"), fg="white", bg="#2d3436").place(x=56, y= 30)
+        self.combo_partidas = ttk.Combobox(self.CargarJ, values=nombres, state="readonly", foreground="black", width=60, height = 100)
+        self.combo_partidas.place(x=50, y=80)
+
+        self.boton_volver = tk.Button(self.CargarJ, text="Volver", font=("Courier new", 15, "bold"), fg="#5c3b22", command=self.CargarJ.destroy)
+        self.boton_volver.place(x=390, y=300)
+        self.label1 = tk.Label(self.CargarJ, text="Elige un modo de juego:", font=("Courier new", 15, "bold"), fg="white", bg="#2d3436").place(x=110, y= 118)
+        self.boton_clasico = tk.Button(self.CargarJ, text="Modo Clasico", font=("Courier new", 15, "bold"), fg="#7f8c8d", bg="white", width=15, command=lambda:self.M_Clasico(self.boton_clasico, self.boton_libre))
+        self.boton_clasico.place(x=50, y=165)
+        self.boton_libre = tk.Button(self.CargarJ, text="Modo Libre", font=("Courier new", 15, "bold"), fg="#7f8c8d", bg="white",width=15, command=lambda:self.M_Libre(self.boton_clasico, self.boton_libre))
+        self.boton_libre.place(x=245, y=165)
+        self.boton_cargar = tk.Button(self.CargarJ, text="Cargar Partida", font=("Courier new", 15, "bold"), fg="#5c3b22", bg="white",width=15, command=lambda:self.CargarJuego())
+        self.boton_cargar.place(x=150, y=240)
+
+        self.CargarJ.mainloop()
+    
+    def M_Clasico(self, clasico, libre):
+        libre.config(fg="#7f8c8d")
+        clasico.config(fg="#5c3b22")
+        self.Modo =True
+
+    def M_Libre(self, clasico, libre):
+        clasico.config(fg="#7f8c8d")
+        libre.config(fg="#5c3b22")
+        self.Modo = False
+
+    def CargarJuego(self):
+        partida = self.combo_partidas.get()
+        self.CargarJ.destroy()
+
+        with open("Partidas.json", "r") as archivo:
+            Partidas = json.load(archivo)
+
+        partida_encontrada = None
+        for juego in Partidas.values():
+            if juego["Numero de la Partida"] == partida:
+                partida_encontrada = juego
+                break
+
+        if partida_encontrada:
+            matriz = partida_encontrada["Matriz"]
+
+        if self.Modo == True:
+            JuegoClasico(matriz)
+        if self.Modo == False:
+            JuegoLibre(matriz)
+        if self.Modo == None:
+            messagebox.showinfo("Error", "Debe de escoger un modo de juego")
+            return
+    
 class JuegoBase:
-    def __init__(self,root):
-        self.root = root
-        self.matriz = []
+    def __init__(self, matriz):
+        global Guardado
+        self.juego = tk.Tk()
+        self.juego.title("Laberinto")
+        self.juego.attributes('-fullscreen', True)
+        if matriz == None:
+            self.matriz = None
+        else:
+            self.matriz = matriz
+            Guardado = True
         self.caminos = []
         self.camino_actual = 0
         self.caminos_especiales = {}
         self.mensaje_var = tk.StringVar()
         self.btn_siguiente = None 
         self.label_mensaje = None 
-        self.root.config(bg='#2d3436')
+        self.juego.config(bg='#2d3436')
         self.setup_controles()
         self.setup_estilos()
 
     def setup_controles(self):
-        # Frame principal
-        self.frame_principal = tk.Frame(self.root, bg='#2d3436')
+        global Guardado
+         # Frame principal
+        self.frame_principal = tk.Frame(self.juego, bg='#2d3436')
         self.frame_principal.pack(expand=True, fill=tk.BOTH)
 
+        self.frame_principal.grid_rowconfigure(1, weight=1)
+        self.frame_principal.grid_columnconfigure(0, weight=1)
+
         self.frame_controles = tk.Frame(self.frame_principal, bg='#3c3f41', padx=10, pady=10)
-        self.frame_controles.pack(fill=tk.X)
-        
-        # Área del laberinto
-        self.frame_laberinto = tk.Frame(self.frame_principal, bg='#2d3436')
-        self.frame_laberinto.pack(expand=True, fill=tk.BOTH)
+        self.frame_controles.grid(row=0, column=0, sticky="ew")
+
+        #Area del laberinto 
+        self.frame_laberinto = tk.Frame(self.frame_principal, bg='#2d3436', width = 900, height = 700)
+        self.frame_laberinto.grid(row=1, column=0)
 
         #Botones Comunes
         ttk.Button(self.frame_controles, text="Generar Laberinto", command=self.generar_laberinto).pack(side=tk.LEFT, padx=5)
-        ttk.Button(self.frame_controles, text="Volver al Menú", command=self.volver_menu).pack(side=tk.RIGHT, padx=5)
         
         # Selector de tamaño
-        self.combo_dimensiones = ttk.Combobox(self.frame_controles, values=[5,10,15,20,25], state="readonly")
-        self.combo_dimensiones.pack(side=tk.LEFT, padx=5)
-        self.combo_dimensiones.set(10)
+        if Guardado == False:
+            self.combo_dimensiones = ttk.Combobox(self.frame_controles, values=[5,10,15,20,25], state="readonly", foreground = "black")
+            self.combo_dimensiones.pack(side=tk.LEFT, padx=5)
+            self.combo_dimensiones.set(10)
 
         self.label_mensaje = ttk.Label(
             self.frame_controles,
             textvariable=self.mensaje_var,
             relief=tk.SUNKEN,
             padding=(5,2),
-            background='#3c3f41',
-            foreground='white'
-    )
+            background='white',
+        )
         self.label_mensaje.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+
+        ttk.Button(self.frame_principal, text="Volver al Menú", command=self.volver_menu).place(x=1230,y=720)
 
     def setup_estilos(self):
         style = ttk.Style()
@@ -175,9 +259,11 @@ class JuegoBase:
     6. Maneja errores de entrada con mensajes visuales
     """
     def generar_laberinto(self):
+        global Guardado
         try:
-            tamano = int(self.combo_dimensiones.get())
-            self.matriz = crear_Matriz(tamano)
+            if Guardado == False:
+                tamano = int(self.combo_dimensiones.get())
+                self.matriz = crear_Matriz(tamano)
 
             #Limbiar y dibujar consola
             for widget in self.frame_laberinto.winfo_children():
@@ -219,6 +305,7 @@ class JuegoBase:
       * 3 (fin): rojo
     - Resalta celdas del camino con el color especificado
     """
+
     def dibujar_matriz_especial(self, camino, color_camino):
         """Dibuja la matriz resaltanmdp un camino con color especial"""
         for i in range(len(self.matriz)):
@@ -258,13 +345,6 @@ class JuegoBase:
                 )
                 boton.grid(row=i, column=j, padx=1, pady=1)
 
-
-
-
-    
-
-
-
     def mostrar_mensaje(self, mensaje, tipo='info'):
         colores = {
             'info': 'black',
@@ -275,12 +355,66 @@ class JuegoBase:
         self.mensaje_var.set(mensaje)
         self.label_mensaje.config(foreground=colores.get(tipo, 'black'),
                                   font=('Arial', 10, 'italic' if tipo == 'debug' else 'normal'))
-        self.root.update_idletasks()
+        self.juego.update_idletasks()
 
 
     def volver_menu(self):
-        self.root.destroy()
+        self.juego.destroy()
         InterfazLaberinto()
+
+    def guardar(self):
+        self.partida_window = tk.Tk()
+        self.partida_window.geometry("400x200")
+        self.partida_window.title("Partida")
+        self.partida_window.resizable(0, 0)
+        self.partida_window.config(bg="#7f8c8d")
+        self.label_nombre = tk.Label(self.partida_window,text="Ingrese el número de la partida:", bg="#7f8c8d", font = ("Comic Sans MS", 16),
+        activeforeground="#fff5e1", fg="black")
+        self.label_nombre.place(x=35, y=30)
+        self.nombrePart = tk.Entry(self.partida_window, relief="sunken", font=("Courier New", 12), width=32)
+        self.nombrePart.place(x=35, y=80)
+        self.boton = tk.Button(self.partida_window,text="Guardar Partida", font=("Comic Sans MS", 12), bg="white", fg="black", command=lambda:self.agregarPartida(self.nombrePart.get(), self.partida_window))
+        self.boton.place(x=111, y=130)
+
+        nombreArchivo = "Partidas.json"
+        try:
+            archivo = open("Partidas.json","r")
+            archivo.close()
+        except:
+            archivo = open(nombreArchivo,"w")
+            archivo.write("{}")
+            archivo.close()
+
+        self.partida_window.mainloop()
+
+    def agregarPartida(self, nombre, ventana):
+        Partidas = {}
+        
+        try:
+            with open("Partidas.json", "r") as archivo:
+                Partidas = json.load(archivo)
+        except:
+            Partidas = {}
+
+        # Ahora sí agregamos la nueva partida
+        nueva_partida = {
+            "Numero de la Partida": nombre,
+            "Matriz": self.matriz
+        }
+        
+        if nombre in Partidas:
+            messagebox.showerror("Error", "¡Este número de partida ya existe! Elija otro.")
+            return
+
+        Partidas[nombre] = nueva_partida  
+
+        with open("Partidas.json", "w") as archivo:
+            json.dump(Partidas, archivo, indent=7)
+
+        ventana.destroy()
+        messagebox.showinfo("Guardado", "Tu partida ha quedado guardada")
+
+
 #--------------------------------------------------------------------------------   
 """"
     Construye el panel de control superior con todos los elementos interactivos:
@@ -294,6 +428,7 @@ class JuegoBase:
 class JuegoClasico(JuegoBase):
     def __init__(self, root):
         super().__init__(root)
+        self.root = root
         self.setup_controles_clasico()
         # Inicialización de variables específicas
         self.caminos = []
@@ -301,13 +436,14 @@ class JuegoClasico(JuegoBase):
         self.caminos_especiales = {}
 
     def setup_controles_clasico(self):
+        global Guardado
         # Botones específicos del modo clásico
-        frame_navegacion = tk.Frame(self.frame_controles, bg='#3c3f41')
-        frame_navegacion.pack(side=tk.LEFT, padx=10)
+        self.frame_navegacion = tk.Frame(self.frame_controles, bg='#3c3f41')
+        self.frame_navegacion.pack(side=tk.LEFT, padx=10)
         
          # Botón Resolver
         ttk.Button(
-            frame_navegacion,
+            self.frame_navegacion,
             text="Resolver Laberinto",
             command=self.resolver_laberinto,
             style='TButton'
@@ -315,13 +451,22 @@ class JuegoClasico(JuegoBase):
         
         # Botón Siguiente Camino
         self.btn_siguiente = ttk.Button(
-            frame_navegacion,
+            self.frame_navegacion,
             text="Siguiente Camino",
             command=self.mostrar_siguiente_camino,
             state=tk.DISABLED,
             style='TButton'
         )
         self.btn_siguiente.pack(side=tk.LEFT, padx=5)
+
+        if Guardado == False:
+            self.botonGuardar = self.botonGuardar = ttk.Button(
+                self.frame_controles, 
+                text="Guardar Partida", 
+                command=self.guardar, 
+                state = tk.DISABLED,
+                style = 'TButton')
+            self.botonGuardar.pack(side=tk.RIGHT, padx=5)
 
          # Botones de caminos especiales
         frame_especiales = ttk.Frame(self.frame_controles)
@@ -352,12 +497,11 @@ class JuegoClasico(JuegoBase):
         ).pack(side=tk.LEFT, padx=2)
         
         # Configuración de estilos específicos
-        self.root.style = ttk.Style()
-        self.root.style.configure('Special.TButton', 
+        self.style = ttk.Style()
+        self.style.configure('Special.TButton', 
                                 foreground='white',
                                 background='#3498db',
                                 font=('Arial', 10, 'bold'))
-        
     
     """
     Coordina el proceso de resolución completo:
@@ -370,11 +514,12 @@ class JuegoClasico(JuegoBase):
     7. Proporciona feedback visual del resultado
     """
     def resolver_laberinto(self):
+        global Guardado
         "Encontrar todos los posibles caminos usando el algoritmo de Backtracking"
         if not self.matriz:
             self.mostrar_mensaje("Primero genera un laberinto", 'error')
             return
-        
+
         # Verificar que haya inicio (forma correcta)
         inicio_encontrado = any(2 in fila for fila in self.matriz)
     
@@ -392,6 +537,8 @@ class JuegoClasico(JuegoBase):
             self.dibujar_matriz(self.caminos[self.camino_actual])
             if hasattr(self, 'btn_siguiente'):
                 self.btn_siguiente.config(state=tk.NORMAL)
+                if Guardado == False:
+                    self.botonGuardar.config(state=tk.NORMAL)
             else:
                 self.mostrar_mensaje("No se encontraron caminos", 'error')
                 self.matriz = [fila[:] for fila in self.matriz_original]
@@ -902,6 +1049,5 @@ def nodo_Aleatorio(matriz):
                 posibles.append([i, j])
     if posibles != None:
         return random.choice(posibles)
-
 
 InterfazLaberinto()
