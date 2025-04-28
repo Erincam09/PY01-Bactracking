@@ -269,7 +269,7 @@ class JuegoBase:
             for widget in self.frame_laberinto.winfo_children():
                 widget.destroy()
 
-            self.botones = [] 
+            self.botones = [] #Lista de botones
 
             for i in range(len(self.matriz)):
                 fila_botones = []
