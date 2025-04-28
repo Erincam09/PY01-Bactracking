@@ -261,34 +261,53 @@ class JuegoBase:
     def generar_laberinto(self):
         global Guardado
         try:
-            if Guardado == False:
+            if not Guardado:
                 tamano = int(self.combo_dimensiones.get())
                 self.matriz = crear_Matriz(tamano)
 
-            #Limbiar y dibujar consola
+                # Marcadores de inicio y fin nuevos
+                self.jugador_pos = [1, 1]
+                self.matriz[1][1] = 2
+
+                self.fin_pos = nodo_Aleatorio(self.matriz)
+                self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
+
+            else:
+                start = None
+                end = None
+                for i in range(len(self.matriz)):
+                    for j in range(len(self.matriz[0])):
+                        if self.matriz[i][j] == 2:
+                            start = [i, j]
+                        elif self.matriz[i][j] == 3:
+                            end = [i, j]
+
+                for i, fila in enumerate(self.matriz):
+                    for j, celda in enumerate(fila):
+                        if celda == 2 and [i, j] != start:
+                            self.matriz[i][j] = 1
+                        if celda == 3 and [i, j] != end:
+                            self.matriz[i][j] = 1
+
+                self.jugador_pos = start
+                self.fin_pos = end
+
+                Guardado = False
+
             for widget in self.frame_laberinto.winfo_children():
                 widget.destroy()
-
-            self.botones = [] #Lista de botones
-
+            self.botones = []
             for i in range(len(self.matriz)):
-                fila_botones = []
-                for j in range(len(self.matriz[i])):
-                    boton = tk.Button(
+                fila = []
+                for j in range(len(self.matriz[0])):
+                    btn = tk.Button(
                         self.frame_laberinto, width=3, height=1,
                         relief="raised", font=('Arial', 10),
                         command=lambda x=i, y=j: self.NodoInicio(x, y)
                     )
-                    boton.grid(row=i, column=j, padx=1, pady=1)
-                    fila_botones.append(boton)
-                self.botones.append(fila_botones)
-
-            # Establecer posiciones (ajustadas al tamaño real)
-            self.jugador_pos = [1, 1]  # Fila 1, Columna 1
-            self.fin_pos = nodo_Aleatorio(self.matriz)
-
-            self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] = 2
-            self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
+                    btn.grid(row=i, column=j, padx=1, pady=1)
+                    fila.append(btn)
+                self.botones.append(fila)
 
             self.dibujar_matriz()
 
@@ -296,11 +315,14 @@ class JuegoBase:
             self.camino_actual = 0
             if hasattr(self, 'btn_siguiente'):
                 self.btn_siguiente.config(state=tk.DISABLED)
-            self.mostrar_mensaje("Laberinto  generado con exito", 'exito')
+
+            self.mostrar_mensaje("Laberinto generado con éxito", 'exito')
+
         except ValueError:
             self.mostrar_mensaje("Error: Por favor ingrese un tamaño de matriz válido (5x5 - 25x25)", 'error')
         except IndexError as e:
-            self.mostrar_mensaje(f"Error al generar laberinto: {str(e)}", 'error')
+            self.mostrar_mensaje(f"Error al generar laberinto: {e}", 'error')
+
 
     def dibujar_matriz(self, camino=None):
         if camino is not None:
@@ -309,7 +331,6 @@ class JuegoBase:
         else:
             self.dibujar_matriz_especial([],None)
 
-    
     """
     Sistema de renderizado gráfico del laberinto:
     - Asigna colores específicos a:
@@ -384,7 +405,6 @@ class JuegoBase:
         self.label_mensaje.config(foreground=colores.get(tipo, 'black'),
                                   font=('Arial', 10, 'italic' if tipo == 'debug' else 'normal'))
         self.juego.update_idletasks()
-
 
     def volver_menu(self):
         self.juego.destroy()
@@ -572,7 +592,6 @@ class JuegoClasico(JuegoBase):
                 self.matriz = [fila[:] for fila in self.matriz_original]
                 self.dibujar_matriz()
 
-
     def mostrar_siguiente_camino(self):
         if not hasattr(self, 'caminos') or not self.caminos:
             return
@@ -583,7 +602,6 @@ class JuegoClasico(JuegoBase):
         self.camino_actual = (self.camino_actual + 1) % len(self.caminos)
         self.dibujar_matriz_especial(self.caminos[self.camino_actual], 'green')
         self.mostrar_mensaje(f"Mostrando camino {self.camino_actual + 1} de {len(self.caminos)}", 'info')
-
 
     #Encuentra los caminos mas corto, largo y optimo
     def encontrar_caminos_especiales(self):
@@ -605,7 +623,6 @@ class JuegoClasico(JuegoBase):
             self.dibujar_matriz_especial([],None)
             self.mostrar_mensaje(f"Inicio establecido en ({fila}, {columna})", 'exito')
 
-
 #-------------------------------------------------------------------
     """
     Selección inteligente del mejor camino:
@@ -625,7 +642,6 @@ class JuegoClasico(JuegoBase):
         mejores_caminos = caminos_ordenados[:max(1, len(caminos_ordenados)//4)]
         return min(mejores_caminos, key=self.calcular_cambios_direccion)
     
-
     def calcular_cambios_direccion(self,camino):
         cambios = 0
         if len(camino) < 2:
@@ -717,34 +733,58 @@ class JuegoLibre(JuegoBase):
         self.juego.bind('<Right>', lambda e: self.mover_jugador(0, 1))
         
     def generar_laberinto(self):
-        """Genera el laberinto y reinicia posiciones"""
-        try:
+        global Guardado
+
+        # 1) Si venimos de una partida guardada, solo limpiamos duplicados y tomamos start/end
+        if Guardado:
+            start = None
+            end = None
+            for i, fila in enumerate(self.matriz):
+                for j, val in enumerate(fila):
+                    if val == 2: start = [i, j]
+                    if val == 3: end   = [i, j]
+
+            # borrar cualquier otro 2 o 3
+            for i, fila in enumerate(self.matriz):
+                for j, val in enumerate(fila):
+                    if val == 2 and [i,j] != start:
+                        self.matriz[i][j] = 1
+                    if val == 3 and [i,j] != end:
+                        self.matriz[i][j] = 1
+
+            self.jugador_pos = start
+            self.fin_pos     = end
+            Guardado = False
+
+        # 2) Si no hay partida guardada, generamos un laberinto nuevo y ponemos marcadores
+        else:
             tamano = int(self.combo_dimensiones.get())
-            self.matriz = crear_Matriz(tamano, modo_clasico=False)  # Modo libre - sin meta automática
-
-            # Limpiar y dibujar el laberinto
-            for widget in self.frame_laberinto.winfo_children():
-                widget.destroy()
-
-            # Establecemos posiciones iniciales en modo libre
+            self.matriz = crear_Matriz(tamano, modo_clasico=False)
+            # posiciones aleatorias de inicio y fin
             self.jugador_pos = nodo_Aleatorio(self.matriz)
-            self.fin_pos = nodo_Aleatorio(self.matriz)
-
-            # Marcar en la matriz
+            self.fin_pos     = nodo_Aleatorio(self.matriz)
             self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] = 2
-            self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
+            self.matriz[self.fin_pos[0]][self.fin_pos[1]]         = 3
 
-            self.dibujar_matriz()
-            
-            self.caminos = []
-            self.camino_actual = 0
-            if hasattr(self, 'btn_siguiente'):
-                self.btn_siguiente.config(state=tk.DISABLED)
+        # 3) Dibujamos la cuadrícula limpia
+        for w in self.frame_laberinto.winfo_children():
+            w.destroy()
+        self.botones = []
+        for i in range(len(self.matriz)):
+            fila = []
+            for j in range(len(self.matriz[0])):
+                btn = tk.Button(
+                    self.frame_laberinto, width=3, height=1,
+                    relief="raised", font=('Arial', 10),
+                    command=lambda x=i, y=j: self.NodoInicio(x, y)
+                )
+                btn.grid(row=i, column=j, padx=1, pady=1)
+                fila.append(btn)
+            self.botones.append(fila)
 
-            self.mostrar_mensaje("Laberinto generado. Selecciona inicio (J) y luego meta (F)", 'info')
+        self.dibujar_matriz()
+        self.mostrar_mensaje("Laberinto cargado" if Guardado else "Laberinto generado", 'exito')
 
-        except ValueError:
-            self.mostrar_mensaje("Error: Ingrese un tamaño válido (5-25)", 'error')
 
     def modo_seleccion_inicio(self):
         """Selecciona punto inicial"""
@@ -767,7 +807,6 @@ class JuegoLibre(JuegoBase):
         else:
             super().NodoInicio(fila, columna)
 
-
     def establecer_inicio(self, fila, columna):
         """Coloca al jugador en la posición inicial"""
         # Elimina posición anterior si existe
@@ -780,7 +819,6 @@ class JuegoLibre(JuegoBase):
         self.dibujar_matriz()
         self.mostrar_mensaje(f"Inicio establecido en ({fila}, {columna})", 'exito')
 
-
     def establecer_fin(self, fila, columna):
         """Establece la posición final"""
         # Elimina posición anterior si existe
@@ -792,7 +830,6 @@ class JuegoLibre(JuegoBase):
         self.matriz[fila][columna] = 3  # 3 representa el fin
         self.dibujar_matriz()
         self.mostrar_mensaje(f"Fin establecido en ({fila}, {columna})", 'exito')
-
 
     def mover_jugador(self, dx, dy):
         """Mueve al jugador según las teclas presionadas"""
@@ -828,8 +865,6 @@ class JuegoLibre(JuegoBase):
                 self.mostrar_mensaje("Movimiento no permitido", 'error')
         else:
             self.mostrar_mensaje("No puedes salir del laberinto", 'error')
-
-
 
     def reiniciar_jugador(self):
         """Vuelve al jugador a la posición inicial"""
