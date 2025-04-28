@@ -79,7 +79,7 @@ class InterfazLaberinto:
         #Boton 2 (Modo jugador)
         tk.Button(
             button_frame,
-            text="Libre | Próximamente",
+            text="Libre",
             command=self.iniciar_juego_libre,
             **{**button_style, "bg": "#7f8c8d", "activebackground": "#6c7a89"}
         ).pack(side=tk.LEFT, padx=15)
@@ -271,7 +271,7 @@ class JuegoBase:
 
             # Establecer posiciones (ajustadas al tamaño real)
             self.jugador_pos = [1, 1]  # Fila 1, Columna 1
-            self.fin_pos = [len(self.matriz)-2, len(self.matriz[0])-2]
+            self.fin_pos = nodo_Aleatorio(self.matriz)
 
             self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] = 2
             self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
@@ -641,6 +641,7 @@ class JuegoLibre(JuegoBase):
         self.setup_controles_libre()
         self.jugador_pos = None
         self.fin_pos = None
+        self.juego_terminado = False
         self.bind_teclas()
 
     def setup_controles_libre(self):
@@ -682,30 +683,28 @@ class JuegoLibre(JuegoBase):
             self.label_instrucciones.pack(side=tk.RIGHT, padx=10)
 
     def bind_teclas(self):
-        self.root.bind('<Up>', lambda e: self.mover_jugador(-1, 0))
-        self.root.bind('<Down>', lambda e: self.mover_jugador(1, 0))
-        self.root.bind('<Left>', lambda e: self.mover_jugador(0, -1))
-        self.root.bind('<Right>', lambda e: self.mover_jugador(0, 1))
+        self.juego.bind('<Up>', lambda e: self.mover_jugador(-1, 0))
+        self.juego.bind('<Down>', lambda e: self.mover_jugador(1, 0))
+        self.juego.bind('<Left>', lambda e: self.mover_jugador(0, -1))
+        self.juego.bind('<Right>', lambda e: self.mover_jugador(0, 1))
         
     def generar_laberinto(self):
         """Genera el laberinto y reinicia posiciones"""
         try:
             tamano = int(self.combo_dimensiones.get())
             self.matriz = crear_Matriz(tamano, modo_clasico=False)  # Modo libre - sin meta automática
-        
+
             # Limpiar y dibujar el laberinto
             for widget in self.frame_laberinto.winfo_children():
                 widget.destroy()
 
-            #Establecemos posiciones en modo libre
-            self.jugador_pos = [1,1]
-            self.fin_pos = [tamano, tamano]
+            # Establecemos posiciones iniciales en modo libre
+            self.jugador_pos = nodo_Aleatorio(self.matriz)
+            self.fin_pos = nodo_Aleatorio(self.matriz)
 
-
-            #Marcar en la matriz
-            self.matriz[[self.jugador_pos[0]][self.jugador_pos[1]]] = 2
+            # Marcar en la matriz
+            self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] = 2
             self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
-
 
             self.dibujar_matriz()
             
@@ -713,12 +712,9 @@ class JuegoLibre(JuegoBase):
             self.camino_actual = 0
             if hasattr(self, 'btn_siguiente'):
                 self.btn_siguiente.config(state=tk.DISABLED)
-            
-            # Reiniciar posiciones
-            self.jugador_pos = None
-            self.fin_pos = None
+
             self.mostrar_mensaje("Laberinto generado. Selecciona inicio (J) y luego meta (F)", 'info')
-        
+
         except ValueError:
             self.mostrar_mensaje("Error: Ingrese un tamaño válido (5-25)", 'error')
 
@@ -772,6 +768,8 @@ class JuegoLibre(JuegoBase):
 
     def mover_jugador(self, dx, dy):
         """Mueve al jugador según las teclas presionadas"""
+        if self.juego_terminado:
+            return
         if not self.jugador_pos:
             self.mostrar_mensaje("Establece primero la posición inicial", 'error')
             return
@@ -789,7 +787,11 @@ class JuegoLibre(JuegoBase):
                 # Verifica si llegó al final
                 if self.fin_pos and nuevo_x == self.fin_pos[0] and nuevo_y == self.fin_pos[1]:
                     self.mostrar_mensaje("¡Felicidades! Llegaste al final", 'exito')
+                    messagebox.showinfo("Enhorabuena", "¡Has llegado a la meta!!")
+                    self.juego_terminado = True  # Aqui se marca que el juego termino
                     self.matriz[nuevo_x][nuevo_y] = 3
+
+
                 else:
                     self.matriz[nuevo_x][nuevo_y] = 2  # Nueva posición
                 
@@ -971,12 +973,7 @@ def crear_Matriz(tamano, modo_clasico=True):
         laberinto_con_borde.append([0] + fila + [0])  # paredes a los lados
 
     laberinto_con_borde.append(borde)  # última fila de pared
-
-    if modo_clasico:
-        laberinto_con_borde[-2][-2] = 3
-    else:
-        pass
-    
+   
     romperParedes(laberinto_con_borde, tamano//2)
     return laberinto_con_borde
     
