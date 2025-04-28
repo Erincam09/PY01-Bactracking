@@ -269,6 +269,20 @@ class JuegoBase:
             for widget in self.frame_laberinto.winfo_children():
                 widget.destroy()
 
+            self.botones = [] 
+
+            for i in range(len(self.matriz)):
+                fila_botones = []
+                for j in range(len(self.matriz[i])):
+                    boton = tk.Button(
+                        self.frame_laberinto, width=3, height=1,
+                        relief="raised", font=('Arial', 10),
+                        command=lambda x=i, y=j: self.NodoInicio(x, y)
+                    )
+                    boton.grid(row=i, column=j, padx=1, pady=1)
+                    fila_botones.append(boton)
+                self.botones.append(fila_botones)
+
             # Establecer posiciones (ajustadas al tamaño real)
             self.jugador_pos = [1, 1]  # Fila 1, Columna 1
             self.fin_pos = nodo_Aleatorio(self.matriz)
@@ -308,10 +322,25 @@ class JuegoBase:
 
     def dibujar_matriz_especial(self, camino, color_camino):
         """Dibuja la matriz resaltanmdp un camino con color especial"""
+        if not hasattr(self, 'botones'):
+            self.botones = []
+            for i in range(len(self.matriz)):
+                fila_botones = []
+                for j in range(len(self.matriz[i])):
+                    boton = tk.Button(
+                        self.frame_laberinto, width=3, height=1,
+                        relief="raised", font=('Arial', 10),
+                        command=lambda x=i, y=j: self.NodoInicio(x, y)
+                    )
+                    boton.grid(row=i, column=j, padx=1, pady=1)
+                    fila_botones.append(boton)
+                self.botones.append(fila_botones)
+
         for i in range(len(self.matriz)):
             for j in range(len(self.matriz[i])):
                 valor = self.matriz[i][j]
                 g_color = "#636e72" if valor == 0 else "#dfe6e9"  # Muro/Camino base
+                boton = self.botones[i][j]
                 text = ""
                 estado = tk.NORMAL
                 if valor == 0:
@@ -338,12 +367,11 @@ class JuegoBase:
                     bg_color = color_camino
                     text = "•"
 
-                boton = tk.Button(
-                    self.frame_laberinto, text=text, bg=bg_color, width=3, height=1,
-                    relief="raised", font=('Arial', 10), state=estado,
-                    command=lambda x=i, y=j: self.NodoInicio(x, y)
+                boton.config(
+                text=text,
+                bg=bg_color,
+                state=estado
                 )
-                boton.grid(row=i, column=j, padx=1, pady=1)
 
     def mostrar_mensaje(self, mensaje, tipo='info'):
         colores = {
