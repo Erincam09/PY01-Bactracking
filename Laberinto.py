@@ -273,24 +273,29 @@ class JuegoBase:
                 self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
 
             else:
-                start = None
-                end = None
+                inicio = None
+                final = None
                 for i in range(len(self.matriz)):
                     for j in range(len(self.matriz[0])):
                         if self.matriz[i][j] == 2:
-                            start = [i, j]
+                            inicio = [i, j]
                         elif self.matriz[i][j] == 3:
-                            end = [i, j]
+                            final = [i, j]
+                        elif self.matriz[i][j] == 5:
+                            self.matriz[i][j] = 2
+                            inicio = [i, j]
 
                 for i, fila in enumerate(self.matriz):
                     for j, celda in enumerate(fila):
-                        if celda == 2 and [i, j] != start:
+                        if celda == 2 and [i, j] != inicio:
                             self.matriz[i][j] = 1
-                        if celda == 3 and [i, j] != end:
+                        if celda == 3 and [i, j] != final:
+                            self.matriz[i][j] = 1
+                        if celda == 4:
                             self.matriz[i][j] = 1
 
-                self.jugador_pos = start
-                self.fin_pos = end
+                self.jugador_pos = inicio
+                self.fin_pos = final
 
                 Guardado = False
 
@@ -380,10 +385,17 @@ class JuegoBase:
                     bg_color = "#e74c3c"
                     text = "F"
                     estado = tk.NORMAL
+                elif valor == 4:
+                    bg_color = "DeepSkyBlue3"
+                    text = "•"
+                    estado = tk.NORMAL
+                elif valor == 5:
+                    bg_color = "sea green"
+                    text = "I"
+                    estado = tk.NORMAL
                 elif [i,j] == self.jugador_pos:
                     bg_color = "#3498db"
                     text = "J"
-
                 if [i, j] in camino:
                     bg_color = color_camino
                     text = "•"
@@ -576,7 +588,7 @@ class JuegoClasico(JuegoBase):
             return
 
         self.matriz_original = [fila[:] for fila in self.matriz]
-        self.caminos = backtracking(self.matriz)
+        self.caminos, self.Pasos = backtracking(self.matriz)
 
         if self.caminos:
             self.encontrar_caminos_especiales()
@@ -687,6 +699,8 @@ class JuegoLibre(JuegoBase):
         self.fin_pos = None
         self.juego_terminado = False
         self.bind_teclas()
+        self.pasos = []
+        self.resol = 0
 
     def setup_controles_libre(self):
             """Controles específicos del modo libre"""
@@ -694,6 +708,7 @@ class JuegoLibre(JuegoBase):
             frame_controles.pack(side=tk.LEFT, padx=10)
         
             # Botón para seleccionar inicio
+            
             ttk.Button(
                 frame_controles,
                 text="Seleccionar Inicio",
@@ -701,13 +716,21 @@ class JuegoLibre(JuegoBase):
                 style='TButton'
             ).pack(side=tk.LEFT, padx=5)
             
-            # Botón para seleccionar fin
             ttk.Button(
                 frame_controles,
-                text="Seleccionar Fin",
-                command=self.modo_seleccion_fin,
+                text="Resolucion",
+                command=self.Resolucion,
                 style='TButton'
             ).pack(side=tk.LEFT, padx=5)
+
+            self.btn_siguiente = ttk.Button(
+                frame_controles,
+                text="Siguiente Camino",
+                
+                state=tk.DISABLED,
+                style='TButton'
+            )
+            self.btn_siguiente.pack(side=tk.LEFT, padx=5)
             
             # Botón para reiniciar posición
             ttk.Button(
@@ -726,6 +749,15 @@ class JuegoLibre(JuegoBase):
             )
             self.label_instrucciones.pack(side=tk.RIGHT, padx=10)
 
+            if Guardado == False:
+                self.botonGuardar = self.botonGuardar = ttk.Button(
+                    self.frame_controles, 
+                    text="Guardar Partida", 
+                    command=self.guardar, 
+                    state = tk.DISABLED,
+                    style = 'TButton')
+                self.botonGuardar.pack(side=tk.RIGHT, padx=5)
+
     def bind_teclas(self):
         self.juego.bind('<Up>', lambda e: self.mover_jugador(-1, 0))
         self.juego.bind('<Down>', lambda e: self.mover_jugador(1, 0))
@@ -737,24 +769,25 @@ class JuegoLibre(JuegoBase):
 
         # 1) Si venimos de una partida guardada, solo limpiamos duplicados y tomamos start/end
         if Guardado:
-            start = None
-            end = None
+            final = None
             for i, fila in enumerate(self.matriz):
                 for j, val in enumerate(fila):
-                    if val == 2: start = [i, j]
-                    if val == 3: end   = [i, j]
+                    if val == 3: 
+                        final  = [i, j]
 
             # borrar cualquier otro 2 o 3
             for i, fila in enumerate(self.matriz):
                 for j, val in enumerate(fila):
-                    if val == 2 and [i,j] != start:
+                    if val == 2:
                         self.matriz[i][j] = 1
-                    if val == 3 and [i,j] != end:
+                    if val == 3 and [i,j] != final:
                         self.matriz[i][j] = 1
 
-            self.jugador_pos = start
-            self.fin_pos     = end
-            Guardado = False
+
+            self.jugador_pos = nodo_Aleatorio(self.matriz)
+            self.inicioJ = self.jugador_pos
+            self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] = 2
+            self.fin_pos  = final
 
         # 2) Si no hay partida guardada, generamos un laberinto nuevo y ponemos marcadores
         else:
@@ -762,9 +795,15 @@ class JuegoLibre(JuegoBase):
             self.matriz = crear_Matriz(tamano, modo_clasico=False)
             # posiciones aleatorias de inicio y fin
             self.jugador_pos = nodo_Aleatorio(self.matriz)
-            self.fin_pos     = nodo_Aleatorio(self.matriz)
+            self.inicioJ = self.jugador_pos
+            self.fin_pos = nodo_Aleatorio(self.matriz)
             self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] = 2
-            self.matriz[self.fin_pos[0]][self.fin_pos[1]]         = 3
+            self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
+
+        self.caminos, self.pasos = backtracking(self.matriz)
+
+        if Guardado == False:
+            self.botonGuardar.config(state=tk.NORMAL)
 
         # 3) Dibujamos la cuadrícula limpia
         for w in self.frame_laberinto.winfo_children():
@@ -785,16 +824,10 @@ class JuegoLibre(JuegoBase):
         self.dibujar_matriz()
         self.mostrar_mensaje("Laberinto cargado" if Guardado else "Laberinto generado", 'exito')
 
-
     def modo_seleccion_inicio(self):
         """Selecciona punto inicial"""
         self.modo_seleccion = 'inicio'
         self.mostrar_mensaje("Haz clic en la celda de inicio", 'info')
-        
-    def modo_seleccion_fin(self):
-        """Selecciona punto final"""
-        self.modo_seleccion = 'fin'
-        self.mostrar_mensaje("Haz clic en la celda de fin", 'info')
 
     def NodoInicio(self, fila, columna):
         """Sobreescribe el método para selección manual"""
@@ -819,18 +852,6 @@ class JuegoLibre(JuegoBase):
         self.dibujar_matriz()
         self.mostrar_mensaje(f"Inicio establecido en ({fila}, {columna})", 'exito')
 
-    def establecer_fin(self, fila, columna):
-        """Establece la posición final"""
-        # Elimina posición anterior si existe
-        if self.fin_pos:
-            i, j = self.fin_pos
-            self.matriz[i][j] = 1
-            
-        self.fin_pos = [fila, columna]
-        self.matriz[fila][columna] = 3  # 3 representa el fin
-        self.dibujar_matriz()
-        self.mostrar_mensaje(f"Fin establecido en ({fila}, {columna})", 'exito')
-
     def mover_jugador(self, dx, dy):
         """Mueve al jugador según las teclas presionadas"""
         if self.juego_terminado:
@@ -840,7 +861,8 @@ class JuegoLibre(JuegoBase):
             return
             
         x, y = self.jugador_pos
-        nuevo_x, nuevo_y = x + dx, y + dy
+        nuevo_x = x + dx
+        nuevo_y =  y + dy
         
         # Verifica límites del laberinto
         if (0 <= nuevo_x < len(self.matriz)) and (0 <= nuevo_y < len(self.matriz[0])):
@@ -859,7 +881,7 @@ class JuegoLibre(JuegoBase):
 
                 else:
                     self.matriz[nuevo_x][nuevo_y] = 2  # Nueva posición
-                
+                self.matriz[self.inicioJ[0]][self.inicioJ[1]] = 5
                 self.dibujar_matriz()
             else:
                 self.mostrar_mensaje("Movimiento no permitido", 'error')
@@ -874,9 +896,28 @@ class JuegoLibre(JuegoBase):
         if self.fin_pos:
             self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
             
-        self.jugador_pos = None
+        self.jugador_pos = self.inicioJ
         self.dibujar_matriz()
         self.mostrar_mensaje("Posición del jugador reiniciada", 'info')
+
+    def Resolucion(self):
+        if self.matriz != None:
+            self.resol = 0
+            self.resolucionPaso()
+            self.caminos, self.Pasos = backtracking(self.matriz)
+        else:
+            self.mostrar_mensaje("Debe de generar la matriz", 'Error')
+
+    def resolucionPaso(self):
+        if self.resol < len(self.pasos):
+            i, j = self.pasos[self.resol]
+            self.matriz[i][j] = 4         
+            self.dibujar_matriz()
+            self.resol += 1
+            # programa la siguiente llamada dentro de 100 ms (0.1s)
+            self.juego.after(100, self.resolucionPaso)
+        else:
+            self.mostrar_mensaje("Resolución completada", 'exito')
 
 """
     Validador de laberintos usando DFS:
@@ -1041,16 +1082,20 @@ def crear_Matriz(tamano, modo_clasico=True):
     return laberinto_con_borde
     
 
+final = True
 def backtracking(matriz):
+    global final
+    final = True
     listaCaminos = []
     visitados = []
     nodoInicio = []
-    for i, row in enumerate(matriz):
-        for j, value in enumerate(row):
-            if value == 2:
+    listaPasos = []
+    for i, fila in enumerate(matriz):
+        for j, valor in enumerate(fila):
+            if valor == 2:
                 nodoInicio = [i, j]
-    busqueda(matriz, None, nodoInicio, [], listaCaminos, visitados)
-    return listaCaminos
+    busqueda(matriz, None, nodoInicio, [], listaCaminos, visitados, listaPasos)
+    return listaCaminos, listaPasos
 
 """
 Función recursiva auxiliar para backtracking:
@@ -1064,27 +1109,52 @@ Función recursiva auxiliar para backtracking:
     * lista: Acumula el camino parcial actual
     * listaCaminos: Almacena soluciones completas
 """
-def busqueda(matriz, nodoAnterior, nodoActual, lista, listaCaminos, visitados):
+def busqueda(matriz, nodoAnterior, nodoActual, lista, listaCaminos, visitados, listaPasos):
+    global final
     if(nodoActual[0] >= 0 and nodoActual[1] >= 0 and nodoActual[0] < len(matriz) and nodoActual[1] < len(matriz)):
         for elem in visitados:
             if elem == nodoActual:
                 return
+        if final:
+            listaPasos.append(nodoActual)
+        
         if (matriz[nodoActual[0]][nodoActual[1]] == 3):
             listaCaminos += [lista + [nodoActual]]
+            if final:
+                final = False
+        
         if (matriz[nodoActual[0]][nodoActual[1]] == 2 or matriz[nodoActual[0]][nodoActual[1]] == 1):
             visitados += [nodoActual]
+            
             # Arriba
-            if (nodoAnterior != [nodoActual[0]-1, nodoActual[1]]):
-                busqueda(matriz, nodoActual, [nodoActual[0]-1, nodoActual[1]], lista + [nodoActual], listaCaminos, visitados)
+            tam = len(matriz)
+            i = nodoActual[0]-1
+            j = nodoActual[1]
+            if (nodoAnterior != [i,j] and (0<=i<tam)and (0<=j<tam) and (matriz[i][j] ==1 or matriz[i][j] ==3)):
+                busqueda(matriz, nodoActual, [i,j], lista + [nodoActual], listaCaminos, visitados, listaPasos,)
+                if final:
+                    listaPasos.append(nodoActual)
             # Derecha
-            if (nodoAnterior != [nodoActual[0], nodoActual[1]+1]):
-                busqueda(matriz, nodoActual, [nodoActual[0], nodoActual[1]+1], lista + [nodoActual], listaCaminos, visitados)
+            i = nodoActual[0]
+            j = nodoActual[1]+1
+            if (nodoAnterior != [i,j] and (0<=i<tam)and (0<=j<tam) and (matriz[i][j] ==1 or matriz[i][j] ==3)):
+                busqueda(matriz, nodoActual, [i,j], lista + [nodoActual], listaCaminos, visitados, listaPasos)
+                if final:
+                    listaPasos.append(nodoActual)
             # Abajo
-            if (nodoAnterior != [nodoActual[0]+1, nodoActual[1]]):
-                busqueda(matriz, nodoActual, [nodoActual[0]+1, nodoActual[1]], lista + [nodoActual], listaCaminos, visitados)
+            i = nodoActual[0]+1
+            j = nodoActual[1]
+            if (nodoAnterior != [i,j] and (0<=i<tam)and (0<=j<tam) and (matriz[i][j] ==1 or matriz[i][j] ==3)):
+                busqueda(matriz, nodoActual, [i,j], lista + [nodoActual], listaCaminos, visitados, listaPasos)
+                if final:
+                    listaPasos.append(nodoActual)
             # Izquierda
-            if (nodoAnterior != [nodoActual[0], nodoActual[1]-1]):
-                busqueda(matriz, nodoActual, [nodoActual[0], nodoActual[1]-1], lista + [nodoActual], listaCaminos, visitados)
+            i = nodoActual[0]
+            j = nodoActual[1]-1
+            if (nodoAnterior != [i,j] and (0<=i<tam)and (0<=j<tam) and (matriz[i][j] ==1 or matriz[i][j] ==3)):
+                busqueda(matriz, nodoActual, [i,j], lista + [nodoActual], listaCaminos, visitados, listaPasos)
+                if final:
+                    listaPasos.append(nodoActual)
 
             visitados.pop()
 
