@@ -422,6 +422,12 @@ class JuegoBase:
         self.juego.destroy()
         InterfazLaberinto()
 
+    """
+    Funcion para guardar las partidas 
+    -Crea una nueva ventana, en esta se solicita el numero de partida y empieza el proceso de guardado
+    -Esta funcion verifica que exista un archivo json
+    -En caso de que no exita el archivo, la funcion se encargara de crearlo
+    """
     def guardar(self):
         self.partida_window = tk.Tk()
         self.partida_window.geometry("400x200")
@@ -447,7 +453,18 @@ class JuegoBase:
 
         self.partida_window.mainloop()
 
+    """
+    Esta funcion recopila la informacion de la partida 
+    Abre el archivo json y agrega la partida 
+    Se guarda la matriz correspondiente con la partida y el numero ingresado anteriormente.
+    Se muestra un mensaje de que la partida ha sido guardada satisfactoriamente.
+    """
     def agregarPartida(self, nombre, ventana):
+        if nombre == "" or not nombre.isdigit():
+            messagebox.showerror("Error","Debe de ingresar un numero")
+            ventana.destroy()
+            return 
+
         Partidas = {}
         
         try:
@@ -690,7 +707,6 @@ class JuegoClasico(JuegoBase):
         self.dibujar_matriz_especial(self.caminos_especiales[tipo], color)
         self.mostrar_mensaje("Mostrando camino "+ tipo, 'info')
 
-
 class JuegoLibre(JuegoBase):
     def __init__(self, root):
         super().__init__(root)
@@ -900,6 +916,11 @@ class JuegoLibre(JuegoBase):
         self.dibujar_matriz()
         self.mostrar_mensaje("Posición del jugador reiniciada", 'info')
 
+    """
+    Funcion que se encarga de inicializar la funcion de backtracking para la obtencion de pasos y camino del laberinto
+    Además empieza la resolucion paso a paso
+    En caso de no haber una matriz generada, se le mostrara un error 
+    """
     def Resolucion(self):
         if self.matriz != None:
             self.resol = 0
@@ -908,6 +929,12 @@ class JuegoLibre(JuegoBase):
         else:
             self.mostrar_mensaje("Debe de generar la matriz", 'Error')
 
+    """
+    De acuerdo con la lista pasos obtenida de la funcion backtracking
+    Se recorre la lista de coordenadas, se busca la posicion en la matriz y se cambia el valor por un 4
+    Se actualiza la interfaz del laberinto
+    Se esperan 0.1s para hacer la siguiente llamada, esto con el fin de poder ver mejor el proceso
+    """
     def resolucionPaso(self):
         if self.resol < len(self.pasos):
             i, j = self.pasos[self.resol]
@@ -1081,7 +1108,16 @@ def crear_Matriz(tamano, modo_clasico=True):
     romperParedes(laberinto_con_borde, tamano//2)
     return laberinto_con_borde
     
-
+"""
+Esta funcion de backtracking busca todos los posibles caminos que hay para encontrar la salida.
+Además la función guarda todos los pasos que se toman, probando distintos caminos hasta el primero que llegue a la función.
+- Parámetros clave:
+    * nodoAnterior: Evita movimientos redundantes
+    * lista: Acumula el camino parcial actual
+    * listaCaminos: Almacena soluciones completas
+    * listaPasos: Almacena las coordenadas hasta encontrar el final
+    * Final: valida que se encontro el final, esto para dejar de guardar coordenadas en listaPasos
+"""
 final = True
 def backtracking(matriz):
     global final
@@ -1104,10 +1140,7 @@ Función recursiva auxiliar para backtracking:
     2. Si llega al final (3), guarda el camino
     3. Explora en 4 direcciones (evitando retroceder)
     4. Implementa poda para evitar ciclos
-- Parámetros clave:
-    * nodoAnterior: Evita movimientos redundantes
-    * lista: Acumula el camino parcial actual
-    * listaCaminos: Almacena soluciones completas
+    5. Todos los caminos son guardados y cada uno de los pasos que se hacen hasta llegar al final 
 """
 def busqueda(matriz, nodoAnterior, nodoActual, lista, listaCaminos, visitados, listaPasos):
     global final
