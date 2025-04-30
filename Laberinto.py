@@ -9,6 +9,12 @@ import os
 
 Guardado = False
 class InterfazLaberinto:
+    """
+    This function starts everything. It creates the main menu window,
+    sets its size and position in the center of the screen, removes window borders,
+    loads the background image, and adds all the main buttons like 'Classic', 'Free', and 'Load Game'.
+    Think of this as the starting point of the game — the welcome screen.
+    """
     def __init__(self):
         global Guardado
         self.menu_window = tk.Tk()
@@ -28,7 +34,9 @@ class InterfazLaberinto:
         
 
     """
-    Funcion para cargar automaticamente el fondo elegido para el menu al iniciar la app
+    This function loads and displays the menu background image.
+    If it cant find the image or theres an error, it sets a black background instead.
+    Basically, it makes the menu look nice.
     """
     def fondo_menu(self):
         try:
@@ -45,7 +53,13 @@ class InterfazLaberinto:
             self.menu_window.config(bg="black")
 
     """
-    Carga los botones del menu inicial despues de cargar la imagen
+    This function adds all the main buttons to the menu:
+    - 'Classic Mode' starts a game where you can solve the maze.
+    - 'Free Mode' lets you move manually using the keyboard.
+    - 'Load Game' lets you resume a saved game.
+    - 'Exit' closes the game.
+    
+    It also sets the style of the buttons to make them look cool.
     """
     def botones_menu(self):
         # espacio para el titulo 
@@ -102,15 +116,31 @@ class InterfazLaberinto:
             "activebackground": "#922b21",
             "fg": "#fadbd8"}  # Texto más claro
         ).pack(side=tk.LEFT, padx=15)
-        
+
+    """
+    This function closes the menu and launches the classic mode game screen.
+    """     
     def iniciar_juego_clasico(self):
         self.menu_window.destroy()
         JuegoClasico(None)
 
+
+    """
+    This function closes the menu and launches the free mode game screen,
+    where you move the player manually to reach the goal.
+    """
     def iniciar_juego_libre(self):
         self.menu_window.destroy()
         JuegoLibre(None)
 
+      
+    """
+    This function opens a new window to load a previously saved game.
+    It reads a JSON file with all saved games, lets you pick a game number and mode (classic or free),
+    and then loads it.
+    
+    If no games are saved, it shows a message saying so.
+    """
     def cargar_juego(self):
         Partidas = []
         self.Modo = None
@@ -150,17 +180,32 @@ class InterfazLaberinto:
         self.boton_cargar.place(x=150, y=240)
 
         self.CargarJ.mainloop()
-    
+
+
+    """
+    This is called when the player picks 'Classic Mode' in the load menu.
+    It updates the button colors and sets the mode to Classic.
+    """
     def M_Clasico(self, clasico, libre):
         libre.config(fg="#7f8c8d")
         clasico.config(fg="#5c3b22")
         self.Modo =True
 
+    """
+    This is called when the player picks 'Free Mode' in the load menu.
+    It updates the button colors and sets the mode to Free.
+    """
     def M_Libre(self, clasico, libre):
         clasico.config(fg="#7f8c8d")
         libre.config(fg="#5c3b22")
         self.Modo = False
 
+    """
+    After selecting the game number and mode, this function loads the selected maze
+    and starts the game in the chosen mode (classic or free).
+    
+    If no mode is selected, it shows an error message.
+    """
     def CargarJuego(self):
         partida = self.combo_partidas.get()
         self.CargarJ.destroy()
@@ -186,6 +231,13 @@ class InterfazLaberinto:
             return
     
 class JuegoBase:
+    """
+    This is the base setup for any game mode (classic or free).
+    It creates a fullscreen game window and stores the maze (if theres one loaded).
+    It also sets up all the needed variables like the list of paths,
+    the current path index, and message display.
+    Basically, this gets everything ready to draw and play.
+    """
     def __init__(self, matriz):
         global Guardado
         self.juego = tk.Tk()
@@ -206,6 +258,12 @@ class JuegoBase:
         self.setup_controles()
         self.setup_estilos()
 
+
+    """
+    This sets up the top control bar and the area where the maze will be displayed.
+    It adds the 'Generate Maze' button and, if no game is loaded, also adds the size selector.
+    Finally, it adds a message area at the bottom to show feedback to the player.
+    """
     def setup_controles(self):
         global Guardado
          # Frame principal
@@ -242,6 +300,10 @@ class JuegoBase:
 
         ttk.Button(self.frame_principal, text="Volver al Menú", command=self.volver_menu).place(x=1230,y=720)
 
+    """
+    This function just gives all the buttons and dropdowns a nice consistent style.
+    Colors, fonts, and hover effects are set here.
+    """
     def setup_estilos(self):
         style = ttk.Style()
         style.theme_use('clam')
@@ -250,13 +312,10 @@ class JuegoBase:
         style.configure('TCombobox', fieldbackground='#3c3f41', foreground='white')
 
     """
-    Genera un laberinto válido mediante el siguiente proceso:
-    1. Obtiene el tamaño seleccionado por el usuario
-    2. Crea una matriz aleatoria usando crear_Matriz()
-    3. Fuerza las esquinas (0,0) y (n-1,n-1) como celdas transitables
-    4. Limpia el frame de dibujo anterior
-    5. Reinicia el estado de caminos encontrados
-    6. Maneja errores de entrada con mensajes visuales
+    This creates a brand-new maze from scratch — or reuses a loaded one.
+    If there's no saved game, it generates a maze of the selected size,
+    places the player and the finish at random points, and prepares the grid.
+    If the maze is loaded from a save, it just cleans and resets the board.
     """
     def generar_laberinto(self):
         global Guardado
@@ -329,6 +388,12 @@ class JuegoBase:
             self.mostrar_mensaje(f"Error al generar laberinto: {e}", 'error')
 
 
+
+    """
+    This draws the maze on the screen.
+    If a path is passed in (like a solution), it highlights it in green.
+    Otherwise, it just draws the maze normally.
+    """
     def dibujar_matriz(self, camino=None):
         if camino is not None:
             color_camino = 'green'
@@ -336,16 +401,17 @@ class JuegoBase:
         else:
             self.dibujar_matriz_especial([],None)
 
-    """
-    Sistema de renderizado gráfico del laberinto:
-    - Asigna colores específicos a:
-      * 0 (muro): gris oscuro
-      * 1 (camino): blanco
-      * 2 (inicio): azul
-      * 3 (fin): rojo
-    - Resalta celdas del camino con el color especificado
-    """
+   
 
+    """
+    This draws each cell of the maze with the correct color and label.
+    For example:
+    - 0 is a wall (gray)
+    - 1 is a path (white)
+    - 2 is the player (blue)
+    - 3 is the goal (red)
+    If a special path is provided, its drawn using a custom color and a dot.
+    """
     def dibujar_matriz_especial(self, camino, color_camino):
         """Dibuja la matriz resaltanmdp un camino con color especial"""
         if not hasattr(self, 'botones'):
@@ -406,6 +472,12 @@ class JuegoBase:
                 state=estado
                 )
 
+
+    """
+    This function shows a message to the user in the bottom bar.
+    Messages can be info, success, error, or debug — and each gets a different color.
+    Super useful for guiding the player.
+    """
     def mostrar_mensaje(self, mensaje, tipo='info'):
         colores = {
             'info': 'black',
@@ -418,15 +490,20 @@ class JuegoBase:
                                   font=('Arial', 10, 'italic' if tipo == 'debug' else 'normal'))
         self.juego.update_idletasks()
 
+
+    """
+    This closes the current game window and goes back to the main menu.
+    Basically, a way to start over or quit a game.
+    """
     def volver_menu(self):
         self.juego.destroy()
         InterfazLaberinto()
 
     """
-    Funcion para guardar las partidas 
-    -Crea una nueva ventana, en esta se solicita el numero de partida y empieza el proceso de guardado
-    -Esta funcion verifica que exista un archivo json
-    -En caso de que no exita el archivo, la funcion se encargara de crearlo
+    This opens a little window to ask for a save number.
+    It then checks if the JSON file for saves exists.
+    If not, it creates one.
+    The actual saving is handled by another function.
     """
     def guardar(self):
         self.partida_window = tk.Tk()
@@ -454,10 +531,9 @@ class JuegoBase:
         self.partida_window.mainloop()
 
     """
-    Esta funcion recopila la informacion de la partida 
-    Abre el archivo json y agrega la partida 
-    Se guarda la matriz correspondiente con la partida y el numero ingresado anteriormente.
-    Se muestra un mensaje de que la partida ha sido guardada satisfactoriamente.
+    This function saves the current game to a JSON file using the number provided.
+    It checks for duplicates and shows errors if the number already exists or is invalid.
+    If everything’s good, it saves the maze and shows a confirmation message.
     """
     def agregarPartida(self, nombre, ventana):
         if nombre == "" or not nombre.isdigit():
@@ -493,16 +569,13 @@ class JuegoBase:
 
 
 #--------------------------------------------------------------------------------   
-""""
-    Construye el panel de control superior con todos los elementos interactivos:
-    - Botones para generación y resolución del laberinto
-    - Selector de tamaño mediante Spinbox (rango 5-20)
-    - Botones de navegación entre caminos
-    - Sección especial para mostrar caminos destacados
-    - Área de mensajes con sistema de colores por tipo (error/éxito/info)
-    - Configura estilos y disposición de todos los widgets
-"""
+
 class JuegoClasico(JuegoBase):
+    """
+    This sets up everything needed to play in Classic Mode.
+    It uses the base class to initialize the maze and controls,
+    and then adds special buttons like 'Solve Maze', 'Next Path', and shortcut buttons for best paths.
+    """
     def __init__(self, root):
         super().__init__(root)
         self.root = root
@@ -512,6 +585,14 @@ class JuegoClasico(JuegoBase):
         self.camino_actual = 0
         self.caminos_especiales = {}
 
+
+    """
+    This adds all the controls specific to Classic Mode:
+    - A button to solve the maze using backtracking
+    - A 'Next Path' button to cycle through solutions
+    - Buttons to see the shortest, longest, or most optimal paths
+    It also prepares the save button (but keeps it disabled until needed).
+    """
     def setup_controles_clasico(self):
         global Guardado
         # Botones específicos del modo clásico
@@ -580,15 +661,14 @@ class JuegoClasico(JuegoBase):
                                 background='#3498db',
                                 font=('Arial', 10, 'bold'))
     
+   
+
     """
-    Coordina el proceso de resolución completo:
-    1. Valida que exista un laberinto generado
-    2. Crea copia de seguridad de la matriz original
-    3. Configura puntos inicial (2) y final (3)
-    4. Ejecuta el algoritmo de backtracking para encontrar todos los caminos
-    5. Identifica caminos especiales (corto/largo/óptimo)
-    6. Habilita la navegación entre soluciones
-    7. Proporciona feedback visual del resultado
+    This function handles everything to solve the maze:
+    - It checks if there's a valid maze with a starting point
+    - Then it runs the backtracking algorithm to find all possible paths
+    - After that, it figures out which paths are the shortest, longest, and most efficient
+    - And finally, it lets the player browse through the found paths
     """
     def resolver_laberinto(self):
         global Guardado
@@ -621,6 +701,12 @@ class JuegoClasico(JuegoBase):
                 self.matriz = [fila[:] for fila in self.matriz_original]
                 self.dibujar_matriz()
 
+            
+    """
+    This lets the player go through the list of paths found by backtracking.
+    Every time it's clicked, it shows the next path in green.
+    If you reach the last one, it loops back to the first.
+    """
     def mostrar_siguiente_camino(self):
         if not hasattr(self, 'caminos') or not self.caminos:
             return
@@ -632,7 +718,15 @@ class JuegoClasico(JuegoBase):
         self.dibujar_matriz_especial(self.caminos[self.camino_actual], 'green')
         self.mostrar_mensaje(f"Mostrando camino {self.camino_actual + 1} de {len(self.caminos)}", 'info')
 
-    #Encuentra los caminos mas corto, largo y optimo
+    
+
+    """
+    This looks at all the paths found and picks out:
+    - The shortest one
+    - The longest one
+    - The most optimal one (least turns)
+    It saves them in a dictionary so they can be shown quickly later.
+    """
     def encontrar_caminos_especiales(self):
         if not self.caminos:
             return
@@ -640,6 +734,13 @@ class JuegoClasico(JuegoBase):
         self.caminos_especiales['largo'] = max(self.caminos, key=len)
         self.caminos_especiales['optimo'] = self.encontrar_camino_optimo()
 
+
+
+    """
+    This function lets the player manually choose a new starting point in the maze.
+    It clears the old starting point and sets a new one based on the cell clicked.
+    Only works on walkable tiles.
+    """
     def NodoInicio(self, fila, columna):
         if self.matriz[fila][columna] == 1:
         # En el caso de que hubiera una salida ya establecida, esta se eliminará
@@ -654,15 +755,15 @@ class JuegoClasico(JuegoBase):
 
 #-------------------------------------------------------------------
     """
-    Selección inteligente del mejor camino:
-    - Criterios combinados:
-      1. Longitud (prioriza 25% más cortos)
-      2. Eficiencia de movimiento (menos cambios de dirección)
-    - Proceso:
-      1. Ordena caminos por longitud
-      2. Filtra los más cortos
-      3. Evalúa cambios de dirección con calcular_cambios_direccion()
-      4. Retorna el camino con menor número de giros
+    Smart best path selection:
+    - Combined criteria:
+    1. Length (prioritizes the 25% shortest paths)
+    2. Movement efficiency (fewest direction changes)
+    - Process:
+    1. Sort paths by length
+    2. Filter the shortest paths
+    3. Evaluate direction changes with calculate_direction_changes()
+    4. Return the path with the fewest turns
     """
     def encontrar_camino_optimo(self):
         #Primero ordenamos por longitud
@@ -671,6 +772,12 @@ class JuegoClasico(JuegoBase):
         mejores_caminos = caminos_ordenados[:max(1, len(caminos_ordenados)//4)]
         return min(mejores_caminos, key=self.calcular_cambios_direccion)
     
+    
+    """
+    This checks how many times a path changes direction.
+    For example, going from right to down counts as one change.
+    Its used to find the most optimal path (least zig-zagging).
+    """
     def calcular_cambios_direccion(self,camino):
         cambios = 0
         if len(camino) < 2:
@@ -690,6 +797,14 @@ class JuegoClasico(JuegoBase):
                 direccion_anterior = direccion_actual
         return cambios
 
+
+    """
+    This displays one of the special paths (shortest, longest, or optimal) with a specific color.
+    Green = shortest
+    Yellow = optimal
+    Orange = longest
+    It resets the maze and draws just the selected path.
+    """
     def mostrar_camino_especial(self,tipo):
         if not self.caminos or tipo not in self.caminos_especiales:
             return
@@ -707,7 +822,14 @@ class JuegoClasico(JuegoBase):
         self.dibujar_matriz_especial(self.caminos_especiales[tipo], color)
         self.mostrar_mensaje("Mostrando camino "+ tipo, 'info')
 
+
 class JuegoLibre(JuegoBase):
+    """
+    This sets up everything for Free Mode.
+    In this mode, the player can move around manually using arrow keys.
+    It adds special buttons like 'Select Start', 'Reset', and 'Step-by-step solving',
+    and binds the arrow keys for player movement.
+    """
     def __init__(self, root):
         super().__init__(root)
         self.setup_controles_libre()
@@ -718,6 +840,15 @@ class JuegoLibre(JuegoBase):
         self.pasos = []
         self.resol = 0
 
+
+    """
+    This adds buttons and labels for Free Mode:
+    - 'Select Start' lets you pick where the player begins
+    - 'Resolution' solves the maze step by step
+    - 'Next Path' (not used here, just kept for UI consistency)
+    - 'Reset Player' moves the player back to the starting point
+    Also includes a label reminding you to use the arrow keys to move.
+    """
     def setup_controles_libre(self):
             """Controles específicos del modo libre"""
             frame_controles = ttk.Frame(self.frame_controles)
@@ -774,12 +905,25 @@ class JuegoLibre(JuegoBase):
                     style = 'TButton')
                 self.botonGuardar.pack(side=tk.RIGHT, padx=5)
 
+
+    """
+    This function connects the arrow keys (up, down, left, right)
+    to move the player inside the maze.
+    It's what lets you use the keyboard to play manually.
+    """
     def bind_teclas(self):
         self.juego.bind('<Up>', lambda e: self.mover_jugador(-1, 0))
         self.juego.bind('<Down>', lambda e: self.mover_jugador(1, 0))
         self.juego.bind('<Left>', lambda e: self.mover_jugador(0, -1))
         self.juego.bind('<Right>', lambda e: self.mover_jugador(0, 1))
-        
+
+
+    """
+    This generates or loads the maze:
+    - If the maze comes from a saved game, it just resets it
+    - If its a new game, it builds a random maze and places the player and the goal
+    Then it uses the backtracking function to calculate the paths internally.
+    """
     def generar_laberinto(self):
         global Guardado
 
@@ -840,11 +984,22 @@ class JuegoLibre(JuegoBase):
         self.dibujar_matriz()
         self.mostrar_mensaje("Laberinto cargado" if Guardado else "Laberinto generado", 'exito')
 
+
+    """
+    Activates a mode where the next cell you click will become the starting point.
+    It just sets a flag and shows a message to guide the player.
+    """
     def modo_seleccion_inicio(self):
         """Selecciona punto inicial"""
         self.modo_seleccion = 'inicio'
         self.mostrar_mensaje("Haz clic en la celda de inicio", 'info')
 
+
+    """
+    Overrides the function from Classic Mode.
+    If you're in 'select start' mode, it sets that cell as the starting point.
+    Otherwise, it calls the regular version of the function from Classic Mode.
+    """
     def NodoInicio(self, fila, columna):
         """Sobreescribe el método para selección manual"""
         if self.modo_seleccion == 'inicio':
@@ -856,6 +1011,11 @@ class JuegoLibre(JuegoBase):
         else:
             super().NodoInicio(fila, columna)
 
+
+    """
+    This clears the old player position and places the player
+    in the new cell you selected. Only works if the cell is walkable (a path).
+    """
     def establecer_inicio(self, fila, columna):
         """Coloca al jugador en la posición inicial"""
         # Elimina posición anterior si existe
@@ -868,6 +1028,12 @@ class JuegoLibre(JuegoBase):
         self.dibujar_matriz()
         self.mostrar_mensaje(f"Inicio establecido en ({fila}, {columna})", 'exito')
 
+
+    """
+    Moves the player using the arrow keys.
+    If you hit the finish point, it shows a congratulations message.
+    If you bump into a wall or try to move out of bounds, it shows an error.
+    """
     def mover_jugador(self, dx, dy):
         """Mueve al jugador según las teclas presionadas"""
         if self.juego_terminado:
@@ -904,6 +1070,11 @@ class JuegoLibre(JuegoBase):
         else:
             self.mostrar_mensaje("No puedes salir del laberinto", 'error')
 
+
+    """
+    Moves the player back to their original starting point.
+    This is useful if you get lost or want to try again from the beginning.
+    """
     def reiniciar_jugador(self):
         """Vuelve al jugador a la posición inicial"""
         if self.jugador_pos and self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] == 2:
@@ -917,9 +1088,9 @@ class JuegoLibre(JuegoBase):
         self.mostrar_mensaje("Posición del jugador reiniciada", 'info')
 
     """
-    Funcion que se encarga de inicializar la funcion de backtracking para la obtencion de pasos y camino del laberinto
-    Además empieza la resolucion paso a paso
-    En caso de no haber una matriz generada, se le mostrara un error 
+    This starts the step-by-step solving process.
+    It uses backtracking to get the full solution path
+    and prepares to show the steps one by one.
     """
     def Resolucion(self):
         if self.matriz != None:
@@ -930,10 +1101,9 @@ class JuegoLibre(JuegoBase):
             self.mostrar_mensaje("Debe de generar la matriz", 'Error')
 
     """
-    De acuerdo con la lista pasos obtenida de la funcion backtracking
-    Se recorre la lista de coordenadas, se busca la posicion en la matriz y se cambia el valor por un 4
-    Se actualiza la interfaz del laberinto
-    Se esperan 0.1s para hacer la siguiente llamada, esto con el fin de poder ver mejor el proceso
+    This is like a mini animation of the solution.
+    It goes step by step, updating the maze every 0.1 seconds
+    so you can actually see how the algorithm finds its way through.
     """
     def resolucionPaso(self):
         if self.resol < len(self.pasos):
@@ -947,13 +1117,10 @@ class JuegoLibre(JuegoBase):
             self.mostrar_mensaje("Resolución completada", 'exito')
 
 """
-    Validador de laberintos usando DFS:
-    - Implementación:
-      1. Matriz de visitados para evitar repeticiones
-      2. Recorrido en profundidad desde (0,0)
-      3. Prueba las 4 direcciones posibles
-      4. Retorna True solo si alcanza la celda final
-    - Eficiencia: O(n²) donde n es el tamaño de la matriz
+This checks if there’s at least one valid path from the top-left corner (0,0)
+to the bottom-right corner (n-1,n-1) of the maze.
+It uses DFS (depth-first search) to explore the maze.
+If it reaches the end, it returns True. Otherwise, False.
 """
 def camino_valido(matriz):
     if not matriz or matriz[0][0] == 0 or matriz[-1][-1] == 0:
@@ -982,18 +1149,18 @@ def camino_valido(matriz):
     return dfs(0,0) 
 
 """
-Esta funcion rompe x cantidad de paredes 
-- Logica de la funcion:
-    1. Se cumple el ciclo dependiendo de la cantidad de veces establecida
-    2. No se permiten mas de 100 intentos
-    3. Se saca de manera aletoria un indice de la matriz
-    4. Se valida que solo se pueda eliminar una pared que tenga 2 0 3 caminos alrededor
-    5. Se eliminan las paredes que fueron debidamente validadas
-- Parámetros Clave:
-    1. tam: tamaño o largo de la matriz
-    2. cantidad: Cuantas paredes se quieren romper 
-    3. intentos: Cantidad de intentos que se realizan limite 100
-    4. vecinosAbiertos: Posibles caminos alrededor de las paredes 
+This function breaks x number of walls
+- Function logic:
+1. The loop is executed depending on the established number of times
+2. No more than 100 attempts are allowed
+3. An index is randomly drawn from the array
+4. It is validated that only a wall with 2 or 3 paths around it can be removed
+5. Walls that have been properly validated are removed
+- Key parameters:
+1. size: Size or length of the array
+2. count: How many walls to break
+3. attempts: Number of attempts made (limit 100)
+4. openNeighbors: Possible paths around the walls
 """
 def romperParedes(laberinto, cantidad):
     tam = len(laberinto)
@@ -1032,16 +1199,12 @@ def romperParedes(laberinto, cantidad):
             intentos += 1
 
 """
-Esta funcion genera un laberinto utilizando backtracking
-- Logica de la funcion:
-    1. Comienza desde la esquina superior izquierda 
-    2. Crea caminos aleatorios al moverse dos celdas en direcciones posibles (arriba, abajo, izquierda, derecha), 
-    3. Elimina las paredes intermedias entre celdas para crear nuevos caminos 
-    4. Si no hay más caminos disponibles desde una posición, retrocede a la anterior (backtracking). 
-    5. Se añade un borde de paredes alrededor del laberinto 
-    6. Por ultimo, se marca una posición aleatoria como nodo final.
+This builds a random maze using backtracking from the top-left corner.
+It starts with all walls, carves paths by skipping cells,
+and breaks walls between them to create tunnels.
+It also adds borders and opens up an exit.
+At the end, it breaks a few extra walls to make things more interesting.
 """
-
 def crear_Matriz(tamano, modo_clasico=True):
     if tamano % 2 == 0:
         tamano += 1
@@ -1109,14 +1272,14 @@ def crear_Matriz(tamano, modo_clasico=True):
     return laberinto_con_borde
     
 """
-Esta funcion de backtracking busca todos los posibles caminos que hay para encontrar la salida.
-Además la función guarda todos los pasos que se toman, probando distintos caminos hasta el primero que llegue a la función.
-- Parámetros clave:
-    * nodoAnterior: Evita movimientos redundantes
-    * lista: Acumula el camino parcial actual
-    * listaCaminos: Almacena soluciones completas
-    * listaPasos: Almacena las coordenadas hasta encontrar el final
-    * Final: valida que se encontro el final, esto para dejar de guardar coordenadas en listaPasos
+This backtracking function searches for all possible paths to the exit.
+The function also saves all steps taken, trying different paths until the first one reaches the function.
+- Key parameters:
+* previousNode: Avoids redundant moves
+* list: Accumulates the current partial path
+* pathList: Stores complete solutions
+* stepList: Stores coordinates until the end is found
+* end: Validates that the end has been found, to stop saving coordinates in stepList
 """
 final = True
 def backtracking(matriz):
@@ -1134,13 +1297,11 @@ def backtracking(matriz):
     return listaCaminos, listaPasos
 
 """
-Función recursiva auxiliar para backtracking:
-- Lógica de exploración:
-    1. Marca celda actual como visitada
-    2. Si llega al final (3), guarda el camino
-    3. Explora en 4 direcciones (evitando retroceder)
-    4. Implementa poda para evitar ciclos
-    5. Todos los caminos son guardados y cada uno de los pasos que se hacen hasta llegar al final 
+This is the recursive part of backtracking.
+It explores in all four directions, tries to avoid going back or into walls,
+and adds the current node to the path.
+If it finds the finish (3), it saves the path.
+It also builds a step-by-step list for animation.
 """
 def busqueda(matriz, nodoAnterior, nodoActual, lista, listaCaminos, visitados, listaPasos):
     global final
@@ -1192,15 +1353,15 @@ def busqueda(matriz, nodoAnterior, nodoActual, lista, listaCaminos, visitados, l
             visitados.pop()
 
 """
-Funcion para elegir de manera aleatoria un punto en el mapa:
-- Logica de la funcion:
-    1. Recorre la matriz por medio de indices
-    2. Se prueba que el elemento en la posicion sea igual a 1 (camino)
-    3. Todos los indices de los caminos son agregados a la lista de posibles 
-    4. Se utiliza de random para elegir uno de los puntos de la lista
-- Parámetros Claves:
-    * tam = tamaño o largo de la matriz
-    * posibles = Guarda todos los puntos libres (caminos)
+Function to randomly select a point on the map:
+- Function logic:
+1. Traverse the array using indices
+2. Test that the element at position is equal to 1 (path)
+3. All path indices are added to the list of possible paths
+4. Use random to select one of the points in the list
+- Key parameters:
+* size = size or length of the array
+* possible = Stores all free points (paths)
 """
 
 def nodo_Aleatorio(matriz):
