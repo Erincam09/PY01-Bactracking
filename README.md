@@ -84,7 +84,7 @@ pic/fondo_menu.png   → Background image for menu
 
 ## 👤 Author
 Developed by 
-   - Erin Camacho
+   - Erin Camacho 2024073710
    - Ginger Rodriguez 2022035672
 
 ---
