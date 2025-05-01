@@ -1,4 +1,4 @@
-# Maze Game in Python using Tkinter
+# Waze Game in Python using Tkinter
 
 A two-mode maze game (Classic and Free) with graphical interface, player movement, and save/load features.
 
