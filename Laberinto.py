@@ -94,7 +94,7 @@ class InterfazLaberinto:
             button_frame,
             text="Libre",
             command=self.iniciar_juego_libre,
-            **{**button_style, "bg": "#7f8c8d", "activebackground": "#6c7a89"}
+            **button_style, 
         ).pack(side=tk.LEFT, padx=15)
 
         # Botón Cargar Juego
@@ -288,6 +288,7 @@ class JuegoBase:
             self.combo_dimensiones.pack(side=tk.LEFT, padx=5)
             self.combo_dimensiones.set(10)
 
+
         self.label_mensaje = ttk.Label(
             self.frame_controles,
             textvariable=self.mensaje_var,
@@ -297,7 +298,11 @@ class JuegoBase:
         )
         self.label_mensaje.pack(side=tk.RIGHT, fill=tk.X, expand=True)
 
-        ttk.Button(self.frame_principal, text="Volver al Menú", command=self.volver_menu).place(x=1230,y=720)
+        ttk.Button(
+            self.frame_controles,
+            text="Volver al Menú",
+            command=self.volver_menu
+        ).pack(side=tk.RIGHT, padx=5)
 
     """
     This function just gives all the buttons and dropdowns a nice consistent style.
@@ -897,14 +902,6 @@ class JuegoLibre(JuegoBase):
                 style='TButton'
             ).pack(side=tk.LEFT, padx=2)
             
-            # Botón para reiniciar posición
-            ttk.Button(
-                frame_controles,
-                text="Reiniciar Jugador",
-                command=self.reiniciar_jugador,
-                style='TButton'
-            ).pack(side=tk.LEFT, padx=5)
-            
             # Etiqueta de instrucciones
             self.label_instrucciones = ttk.Label(
                 self.frame_controles,
@@ -1051,8 +1048,13 @@ class JuegoLibre(JuegoBase):
 
     """
     Moves the player using the arrow keys.
-    If you hit the finish point, it shows a congratulations message.
-    If you bump into a wall or try to move out of bounds, it shows an error.
+    - If the player reaches the finish point, it:
+        1. Shows a congratulations message.
+        2. Displays an animation of the optimal path.
+        3. Compares the player's path with the shortest one and shows a message indicating whether it was the best path.
+
+    - If the player tries to move into a wall or out of bounds, it shows an error message.
+    - Only walkable cells (1 or 3) are allowed.
     """
     def mover_jugador(self, dx, dy):
         """Mueve al jugador según las teclas presionadas"""
@@ -1080,6 +1082,17 @@ class JuegoLibre(JuegoBase):
                     self.juego_terminado = True  # Aqui se marca que el juego termino
                     self.matriz[nuevo_x][nuevo_y] = 3
                     self.Resolucion()
+
+                     # Evaluar si fue el mejor camino
+                    if self.caminos:
+                        camino_jugador = self.pasos
+                        camino_mas_corto = min(self.caminos, key=len)
+                        diferencia = len(camino_jugador) - len(camino_mas_corto)
+                        if diferencia ==0:
+                            messagebox.showinfo("¡Perfecto!", "¡Usaste el camino más corto!")
+                        else:
+                            messagebox.showinfo("¡Buen intento!", f"Llegaste, pero había un camino {diferencia} pasos más corto.")
+                            self.dibujar_matriz_especial(camino_mas_corto, 'green')
                 else:
                     self.matriz[nuevo_x][nuevo_y] = 2  # Nueva posición
                 self.matriz[self.inicioJ[0]][self.inicioJ[1]] = 5
@@ -1119,9 +1132,14 @@ class JuegoLibre(JuegoBase):
             self.mostrar_mensaje("Debe de generar la matriz", 'Error')
 
     """
-    This is like a mini animation of the solution.
-    It goes step by step, updating the maze every 0.1 seconds
-    so you can actually see how the algorithm finds its way through.
+    Animates the resolution of the maze step by step using the stored path.
+    - Each step is shown with a short delay (0.1s by default).
+    - Once the animation finishes, it:
+        1. Enables the 'Next Path' button.
+        2. Calculates and stores special paths (shortest, longest, optimal).
+        3. Shows a success message.
+
+    This function is triggered both manually and automatically when the player reaches the goal.
     """
     def resolucionPaso(self):
         if self.resol < len(self.pasos):
@@ -1130,12 +1148,22 @@ class JuegoLibre(JuegoBase):
             self.dibujar_matriz()
             self.resol += 1
             # programa la siguiente llamada dentro de 100 ms (0.1s)
-            self.juego.after(100, self.resolucionPaso)
+            self.juego.after(10, self.resolucionPaso)
         else:
             self.btn_siguiente.config(state=tk.NORMAL)
             self.encontrar_caminos_especiales()
             self.mostrar_mensaje("Resolución completada", 'exito')
 
+            # Mostrar si fue el mejor camino
+            camino_jugador = self.pasos
+            camino_mas_corto = min(self.caminos, key=len)
+            diferencia = len(camino_jugador) - len(camino_mas_corto)
+
+            if diferencia == 0:
+                self.mostrar_mensaje(f"¡Perfecto! Usaste el camino más corto ({len(camino_jugador)} pasos)", 'exito')
+            else:
+                self.mostrar_mensaje(f"¡Buen intento! Había un camino {diferencia} pasos más corto", 'info')
+                self.dibujar_matriz_especial(camino_mas_corto, 'green')
 
     """
     Cycles through the list of paths found using backtracking.
