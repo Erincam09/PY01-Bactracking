@@ -221,6 +221,8 @@ class InterfazLaberinto:
         if partida_encontrada:
             matriz = partida_encontrada["Matriz"]
 
+        self.menu_window.destroy()
+
         if self.Modo == True:
             JuegoClasico(matriz)
         if self.Modo == False:
@@ -942,7 +944,13 @@ class JuegoLibre(JuegoBase):
     """
     def generar_laberinto(self):
         global Guardado
+        self.juego_terminado = False
+        self.resol = 0
+        self.camino_real = []  
 
+        if hasattr(self, 'btn_siguiente'):
+            self.btn_siguiente.config(state=tk.DISABLED)
+            
         # 1) Si venimos de una partida guardada, solo limpiamos duplicados y tomamos start/end
         if Guardado:
             final = None
