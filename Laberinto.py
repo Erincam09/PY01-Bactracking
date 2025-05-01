@@ -1085,14 +1085,17 @@ class JuegoLibre(JuegoBase):
                     messagebox.showinfo("Enhorabuena", "¡Has llegado a la meta!!")
                     self.juego_terminado = True  # Aqui se marca que el juego termino
                     self.matriz[nuevo_x][nuevo_y] = 3
+                    if self.camino_real[-1] != self.fin_pos:
+                        self.camino_real.append(self.fin_pos)
+
                     self.Resolucion()
 
                      # Evaluar si fue el mejor camino
                     if self.caminos:
-                        camino_jugador = self.pasos
+                        camino_jugador = self.camino_real
                         camino_mas_corto = min(self.caminos, key=len)
                         diferencia = len(camino_jugador) - len(camino_mas_corto)
-                        if diferencia ==0:
+                        if diferencia <= 0:
                             messagebox.showinfo("¡Perfecto!", "¡Usaste el camino más corto!")
                         else:
                             messagebox.showinfo("¡Buen intento!", f"Llegaste, pero había un camino {diferencia} pasos más corto.")
