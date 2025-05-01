@@ -873,7 +873,6 @@ class JuegoLibre(JuegoBase):
             self.btn_siguiente = ttk.Button(
                 frame_controles,
                 text="Siguiente Camino",
-                
                 state=tk.DISABLED,
                 style='TButton'
             )
@@ -981,6 +980,7 @@ class JuegoLibre(JuegoBase):
                 fila.append(btn)
             self.botones.append(fila)
 
+        self.caminos, self.Pasos = backtracking(self.matriz)
         self.dibujar_matriz()
         self.mostrar_mensaje("Laberinto cargado" if Guardado else "Laberinto generado", 'exito')
 
@@ -1059,8 +1059,7 @@ class JuegoLibre(JuegoBase):
                     messagebox.showinfo("Enhorabuena", "¡Has llegado a la meta!!")
                     self.juego_terminado = True  # Aqui se marca que el juego termino
                     self.matriz[nuevo_x][nuevo_y] = 3
-
-
+                    self.Resolucion()
                 else:
                     self.matriz[nuevo_x][nuevo_y] = 2  # Nueva posición
                 self.matriz[self.inicioJ[0]][self.inicioJ[1]] = 5
@@ -1096,7 +1095,6 @@ class JuegoLibre(JuegoBase):
         if self.matriz != None:
             self.resol = 0
             self.resolucionPaso()
-            self.caminos, self.Pasos = backtracking(self.matriz)
         else:
             self.mostrar_mensaje("Debe de generar la matriz", 'Error')
 
@@ -1114,6 +1112,7 @@ class JuegoLibre(JuegoBase):
             # programa la siguiente llamada dentro de 100 ms (0.1s)
             self.juego.after(100, self.resolucionPaso)
         else:
+            self.btn_siguiente.config(state=tk.NORMAL)
             self.mostrar_mensaje("Resolución completada", 'exito')
 
 """
@@ -1305,7 +1304,8 @@ It also builds a step-by-step list for animation.
 """
 def busqueda(matriz, nodoAnterior, nodoActual, lista, listaCaminos, visitados, listaPasos):
     global final
-    if(nodoActual[0] >= 0 and nodoActual[1] >= 0 and nodoActual[0] < len(matriz) and nodoActual[1] < len(matriz)):
+    tam = len(matriz)
+    if(nodoActual[0] >= 0 and nodoActual[1] >= 0 and nodoActual[0] < tam and nodoActual[1] < tam):
         for elem in visitados:
             if elem == nodoActual:
                 return
@@ -1321,7 +1321,6 @@ def busqueda(matriz, nodoAnterior, nodoActual, lista, listaCaminos, visitados, l
             visitados += [nodoActual]
             
             # Arriba
-            tam = len(matriz)
             i = nodoActual[0]-1
             j = nodoActual[1]
             if (nodoAnterior != [i,j] and (0<=i<tam)and (0<=j<tam) and (matriz[i][j] ==1 or matriz[i][j] ==3)):
@@ -1351,6 +1350,7 @@ def busqueda(matriz, nodoAnterior, nodoActual, lista, listaCaminos, visitados, l
                     listaPasos.append(nodoActual)
 
             visitados.pop()
+    return
 
 """
 Function to randomly select a point on the map:
