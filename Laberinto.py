@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
 import random
-from collections import deque
 import json
 from PIL import Image, ImageTk
 from tkinter import messagebox
@@ -832,6 +831,7 @@ class JuegoLibre(JuegoBase):
     """
     def __init__(self, root):
         super().__init__(root)
+        self.modo_seleccion = None
         self.setup_controles_libre()
         self.jugador_pos = None
         self.fin_pos = None
@@ -853,15 +853,6 @@ class JuegoLibre(JuegoBase):
             """Controles específicos del modo libre"""
             frame_controles = ttk.Frame(self.frame_controles)
             frame_controles.pack(side=tk.LEFT, padx=10)
-        
-            # Botón para seleccionar inicio
-            
-            ttk.Button(
-                frame_controles,
-                text="Seleccionar Inicio",
-                command=self.modo_seleccion_inicio,
-                style='TButton'
-            ).pack(side=tk.LEFT, padx=5)
             
             ttk.Button(
                 frame_controles,
@@ -873,10 +864,38 @@ class JuegoLibre(JuegoBase):
             self.btn_siguiente = ttk.Button(
                 frame_controles,
                 text="Siguiente Camino",
+                command=self.mostrar_siguiente_camino,
                 state=tk.DISABLED,
                 style='TButton'
             )
             self.btn_siguiente.pack(side=tk.LEFT, padx=5)
+
+            # Botones de caminos especiales
+            frame_especiales = ttk.Frame(self.frame_controles)
+            frame_especiales.pack(side=tk.LEFT, padx=10)
+
+            ttk.Label(frame_especiales, text="Caminos:").pack(side=tk.LEFT)
+
+            ttk.Button(
+                frame_especiales,
+                text="Mas Corto",
+                command=lambda: self.mostrar_camino_especial('corto'),
+                style='TButton'
+            ).pack(side=tk.LEFT, padx=2)
+
+            ttk.Button(
+                frame_especiales,
+                text="Optimo",
+                command=lambda: self.mostrar_camino_especial('optimo'),
+                style='TButton'
+            ).pack(side=tk.LEFT, padx=2)
+
+            ttk.Button(
+                frame_especiales,
+                text="Mas Largo",
+                command=lambda: self.mostrar_camino_especial('largo'),
+                style='TButton'
+            ).pack(side=tk.LEFT, padx=2)
             
             # Botón para reiniciar posición
             ttk.Button(
@@ -959,6 +978,7 @@ class JuegoLibre(JuegoBase):
             self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] = 2
             self.matriz[self.fin_pos[0]][self.fin_pos[1]] = 3
 
+        self.matriz_original = [fila[:] for fila in self.matriz]
         self.caminos, self.pasos = backtracking(self.matriz)
 
         if Guardado == False:
@@ -1113,10 +1133,109 @@ class JuegoLibre(JuegoBase):
             self.juego.after(100, self.resolucionPaso)
         else:
             self.btn_siguiente.config(state=tk.NORMAL)
+            self.encontrar_caminos_especiales()
             self.mostrar_mensaje("Resolución completada", 'exito')
 
+
+    """
+    Cycles through the list of paths found using backtracking.
+    Each time the button is clicked, it displays the next path in green.
+    Once the end of the list is reached, it loops back to the first path.
+    """
+    def mostrar_siguiente_camino(self):
+        if not hasattr(self, 'caminos') or not self.caminos:
+            return
+        
+        self.matriz = [fila[:] for fila in self.matriz_original]
+        self.camino_actual = (self.camino_actual + 1) % len(self.caminos)
+        self.dibujar_matriz_especial(self.caminos[self.camino_actual], 'green')
+        self.mostrar_mensaje(f"Mostrando camino {self.camino_actual + 1} de {len(self.caminos)}", 'info')
+
+
+    """
+    Identifies and stores three special types of paths:
+    - The shortest path (fewest steps)
+    - The longest path (most steps)
+    - The optimal path (least number of direction changes among the shortest 25%)
+    Stores the result in the 'caminos_especiales' dictionary for quick access.
+    """
+    def encontrar_caminos_especiales(self):
+        if not self.caminos:
+            return
+        self.caminos_especiales['corto'] = min(self.caminos, key=len)
+        self.caminos_especiales['largo'] = max(self.caminos, key=len)
+        self.caminos_especiales['optimo'] = self.encontrar_camino_optimo()
+
+
+    """
+    Calculates the number of direction changes in a path.
+    A direction change is when movement shifts between vertical and horizontal.
+    This is used to determine how efficient or "zig-zaggy" a path is.
+    
+    Parameters:
+    - camino: List of coordinates representing the path.
+
+    Returns:
+    - An integer representing the number of turns in the path.
+    """
+    def calcular_cambios_direccion(self, camino):
+        cambios = 0
+        if len(camino) < 2:
+            return 0
+        direccion_anterior = (
+            camino[1][0] - camino[0][0],
+            camino[1][1] - camino[0][1]
+        )
+
+        for i in range(2, len(camino)):
+            direccion_actual = (
+                camino[i][0] - camino[i-1][0],
+                camino[i][1] - camino[i-1][1]
+            )
+            if direccion_actual != direccion_anterior:
+                cambios += 1
+                direccion_anterior = direccion_actual
+        return cambios
+
+
+    """
+    Selects the most optimal path based on combined criteria:
+    1. First, selects the shortest 25% of all found paths.
+    2. Then, picks the one with the fewest direction changes.
+    
+    Returns:
+    - The optimal path as a list of coordinates.
+    """
+    def encontrar_camino_optimo(self):
+        caminos_ordenados = sorted(self.caminos, key=len)
+        mejores_caminos = caminos_ordenados[:max(1, len(caminos_ordenados)//4)]
+        return min(mejores_caminos, key=self.calcular_cambios_direccion)
+
+
+    """
+    Displays a special path (shortest, optimal, or longest) with a specific color:
+    - Green for the shortest
+    - Yellow for the optimal
+    - Orange for the longest
+    
+    Parameters:
+    - tipo: 'corto', 'optimo', or 'largo'
+    """
+    def mostrar_camino_especial(self, tipo):
+        if not self.caminos or tipo not in self.caminos_especiales:
+            return
+        
+        self.matriz = [fila[:] for fila in self.matriz_original]
+
+        color = {
+            'corto': 'green',
+            'optimo': 'yellow',
+            'largo': 'orange'
+        }.get(tipo, 'green')
+        self.dibujar_matriz_especial(self.caminos_especiales[tipo], color)
+        self.mostrar_mensaje("Mostrando camino " + tipo, 'info')
 """
-This checks if there’s at least one valid path from the top-left corner (0,0)
+This checks if theres at least one valid path from the top-left corner (0,0)
 to the bottom-right corner (n-1,n-1) of the maze.
 It uses DFS (depth-first search) to explore the maze.
 If it reaches the end, it returns True. Otherwise, False.
