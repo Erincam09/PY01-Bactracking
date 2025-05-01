@@ -836,6 +836,7 @@ class JuegoLibre(JuegoBase):
     """
     def __init__(self, root):
         super().__init__(root)
+        self.camino_real = []
         self.modo_seleccion = None
         self.setup_controles_libre()
         self.jugador_pos = None
@@ -960,9 +961,11 @@ class JuegoLibre(JuegoBase):
 
 
             self.jugador_pos = nodo_Aleatorio(self.matriz)
+            self.camino_real = self.camino_real
             self.inicioJ = self.jugador_pos
             self.matriz[self.jugador_pos[0]][self.jugador_pos[1]] = 2
             self.fin_pos  = final
+            self.camino_real = [self.jugador_pos[:]]
 
         # 2) Si no hay partida guardada, generamos un laberinto nuevo y ponemos marcadores
         else:
@@ -1074,6 +1077,7 @@ class JuegoLibre(JuegoBase):
             if self.matriz[nuevo_x][nuevo_y] in [1, 3]:  
                 self.matriz[x][y] = 1  # Limpia la posición anterior
                 self.jugador_pos = [nuevo_x, nuevo_y]
+                self.camino_real.append([nuevo_x, nuevo_y])
                 
                 # Verifica si llegó al final
                 if self.fin_pos and nuevo_x == self.fin_pos[0] and nuevo_y == self.fin_pos[1]:
@@ -1155,13 +1159,13 @@ class JuegoLibre(JuegoBase):
             self.mostrar_mensaje("Resolución completada", 'exito')
 
             # Mostrar si fue el mejor camino
-            camino_jugador = self.pasos
+            camino_jugador = self.camino_real  # aquí se compara con el camino hecho realmente
             camino_mas_corto = min(self.caminos, key=len)
-            diferencia = len(camino_jugador) - len(camino_mas_corto)
 
-            if diferencia == 0:
+            if camino_jugador == camino_mas_corto:
                 self.mostrar_mensaje(f"¡Perfecto! Usaste el camino más corto ({len(camino_jugador)} pasos)", 'exito')
             else:
+                diferencia = len(camino_jugador) - len(camino_mas_corto)
                 self.mostrar_mensaje(f"¡Buen intento! Había un camino {diferencia} pasos más corto", 'info')
                 self.dibujar_matriz_especial(camino_mas_corto, 'green')
 
